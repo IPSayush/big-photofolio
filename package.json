@@ -1,0 +1,23 @@
+{
+  "name": "photofolio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-Powered Event Photography Platform — Multi-Tenant SaaS",
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/worker",
+    "packages/client"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=packages/client",
+    "dev:server": "npm run dev --workspace=packages/server",
+    "dev:worker": "npm run dev --workspace=packages/worker",
+    "test": "npm run test --workspaces --if-present",
+    "test:server": "npm run test --workspace=packages/server",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

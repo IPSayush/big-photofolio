@@ -1,0 +1,7 @@
+{
+  "name": "@photofolio/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "description": "Shared constants, validators, and utilities for PhotoFolio"
+}

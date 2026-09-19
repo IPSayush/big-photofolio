@@ -1,0 +1,27 @@
+{
+  "name": "@photofolio/worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PhotoFolio async image processing worker (BullMQ)",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@photofolio/shared": "*",
+    "bullmq": "^5.8.0",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "mongoose": "^8.5.0",
+    "pino": "^9.3.1",
+    "pino-pretty": "^11.2.1",
+    "sharp": "^0.33.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "vitest": "^2.0.4"
+  }
+}
