@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build --workspace=packages/client",
-  "outputDirectory": "packages/client/dist",
   "installCommand": "npm install",
+  "buildCommand": "cd packages/client && npx vite build",
+  "outputDirectory": "packages/client/dist",
   "framework": null,
   "rewrites": [
     {
@@ -17,7 +17,8 @@
   "functions": {
     "api/**/*.js": {
       "maxDuration": 30,
-      "memory": 256
+      "memory": 256,
+      "includeFiles": "packages/server/src/**,packages/shared/**"
     }
   },
   "headers": [
