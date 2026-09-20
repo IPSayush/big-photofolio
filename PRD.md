@@ -62,7 +62,33 @@
 
 This section is the authoritative record of stack decisions; where any other section of this PRD references a specific technology only as an illustrative example (not a hard requirement from the original source prompt), this table takes precedence.
 
----
+### 1.1.1 Vercel Deployment Architecture (Corrected — Architecture Decision)
+
+**Single unified Vercel project — do not split into two projects.**
+
+This project uses a **single Vercel project** (importing from the repo root, root directory = `./`) that serves both the frontend and backend API from one deployment. Do NOT create a separate backend-only or frontend-only Vercel project — two-project setups fail for the following reasons:
+
+- **Backend can't run as a traditional server on Vercel.** Vercel is a serverless platform. A long-running `node index.js` process (Express listening on a port) is not supported. The backend must be wrapped as a Serverless Function via `api/index.js`.
+- **Split projects cause /api 404s and CORS failures.** The frontend makes all API calls to relative URLs (`/api/...`). If frontend and backend are on different Vercel projects/domains, relative calls hit the CDN (no backend there) and absolute cross-origin calls require complex CORS configuration.
+
+**How the unified deployment is structured:**
+
+| File/Setting | Value | Purpose |
+|---|---|---|
+| `api/index.js` (repo root) | `const app = require('../packages/server/src/app'); module.exports = app;` | Vercel Serverless Function entry point — imports the Express app without duplicating logic |
+| `packages/server/src/app.js` | Exports the Express app via `module.exports = app`. Never calls `app.listen()` | Shared between local dev (called by `packages/server/src/index.js`) and Vercel (called by `api/index.js`) |
+| `packages/server/src/index.js` | Calls `connectDB()` then `app.listen(port)` | **Local dev only** — not used by Vercel |
+| `vercel.json` `buildCommand` | `npm run build` | Runs `cd packages/client && npx vite build` (defined in root `package.json`) |
+| `vercel.json` `outputDirectory` | `packages/client/dist` | Where Vite puts the built frontend |
+| `vercel.json` rewrite `/api/(.*)` → `/api/index.js` | Routes all `/api/*` requests to the Express serverless function | Must point to `api/index.js`, not `/api/$1` (which would loop) |
+| `vercel.json` rewrite `/(.*)` → `/index.html` | SPA fallback — all non-API routes serve the React app | Required for client-side routing |
+| `vercel.json` `functions["api/index.js"]` | `includeFiles: "packages/server/src/**"` | Bundles server source into the serverless function |
+
+**Worker is NOT part of this Vercel project.** `packages/worker` (BullMQ + Redis) must remain on a separate always-on service (Render, Railway, Fly.io, or VPS). This does not change — Vercel's 30-second max function duration is incompatible with persistent queue listeners. (See NFR-REL-001, FR-PIPE-001.)
+
+**MongoDB Atlas Network Access** must be set to allow `0.0.0.0/0` (Allow Access From Anywhere) because Vercel serverless functions run on dynamic AWS IPs that change with every invocation and cannot be statically whitelisted.
+
+
 
 ## 2. Executive Summary
 

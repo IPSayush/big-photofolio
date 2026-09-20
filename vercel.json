@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
@@ -15,10 +15,10 @@
     }
   ],
   "functions": {
-    "api/**/*.js": {
+    "api/index.js": {
       "maxDuration": 30,
-      "memory": 256,
-      "includeFiles": "packages/server/src/**,packages/shared/**"
+      "memory": 512,
+      "includeFiles": "packages/server/src/**"
     }
   },
   "headers": [
