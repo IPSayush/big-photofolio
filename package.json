@@ -10,6 +10,9 @@
     "packages/client"
   ],
   "scripts": {
+    "build": "cd packages/client && npx vite build",
+    "build:client": "cd packages/client && npx vite build",
+    "vercel-build": "cd packages/client && npx vite build",
     "dev:client": "npm run dev --workspace=packages/client",
     "dev:server": "npm run dev --workspace=packages/server",
     "dev:worker": "npm run dev --workspace=packages/worker",
