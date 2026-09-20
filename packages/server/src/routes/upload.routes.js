@@ -19,13 +19,16 @@ const {
   listPhotosQuerySchema,
 } = require('../validators/upload.validators');
 const { ROLES } = require('@photofolio/shared');
+const { checkPhotoQuota } = require('../middleware/quotaCheck');
 
 // All upload routes: authenticate → authorize → tenant scope
 router.use(authenticate, authorize(ROLES.PHOTOGRAPHER), enforceTenantScope);
 
 // FR-UPLOAD-002 / API-007: Request pre-signed S3 upload URLs
+// FR-PLAN-003: Photo quota check
 router.post(
   '/upload-url',
+  checkPhotoQuota,
   validate(requestUploadUrlsSchema, 'body'),
   uploadController.requestUploadUrls
 );

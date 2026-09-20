@@ -22,6 +22,9 @@ process.env.JWT_ACCESS_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.CLIENT_URL = 'http://localhost:5173';
 process.env.API_URL = 'http://localhost:5000';
+process.env.RAZORPAY_WEBHOOK_SECRET = 'test-webhook-secret';
+process.env.RAZORPAY_KEY_ID = 'rzp_test_mock';
+process.env.RAZORPAY_KEY_SECRET = 'test-razorpay-secret';
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();

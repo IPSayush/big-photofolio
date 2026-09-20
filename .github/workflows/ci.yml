@@ -1,0 +1,96 @@
+# PhotoFolio CI/CD — GitHub Actions
+# BL-DEVOPS-001: CI/CD pipeline for automated testing and deployment.
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # ─── Lint & Test ───
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:7
+        ports: ['27017:27017']
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run server tests
+        working-directory: packages/server
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/photofolio_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-test-jwt-secret-key-at-least-32-chars!!
+          JWT_REFRESH_SECRET: ci-test-refresh-secret-key-at-least-32-chars!!
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test-key
+          AWS_SECRET_ACCESS_KEY: test-secret
+          S3_BUCKET_ORIGINALS: test-originals
+          S3_BUCKET_DERIVATIVES: test-derivatives
+          RAZORPAY_KEY_ID: rzp_test_xxx
+          RAZORPAY_KEY_SECRET: test-secret
+          RAZORPAY_WEBHOOK_SECRET: test-webhook-secret
+        run: npx vitest run --reporter=verbose
+
+      - name: Build client
+        working-directory: packages/client
+        run: npm run build
+
+  # ─── Deploy to Vercel (Production) ───
+  deploy-production:
+    name: Deploy Production
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+  # ─── Deploy to Vercel (Preview) ───
+  deploy-preview:
+    name: Deploy Preview
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Preview to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}

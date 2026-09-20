@@ -1,47 +1,81 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import AppLayout from './components/layout/AppLayout';
+import GuestLayout from './components/layout/GuestLayout';
+
+// Auth pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+
+// Photographer pages
+import DashboardPage from './pages/dashboard/DashboardPage';
+import EventListPage from './pages/events/EventListPage';
+import CreateEventPage from './pages/events/CreateEventPage';
+import EventDetailPage from './pages/events/EventDetailPage';
+import UploadPage from './pages/events/UploadPage';
+import PlansPage from './pages/subscription/PlansPage';
+import SubscriptionPage from './pages/subscription/SubscriptionPage';
+
+// Admin pages
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import TenantManagePage from './pages/admin/TenantManagePage';
+
+// Guest pages
+import GuestLandingPage from './pages/guest/GuestLandingPage';
+import ConsentPage from './pages/guest/ConsentPage';
+import GalleryPage from './pages/guest/GalleryPage';
 
 /**
- * App root — routing shell.
- * Phase 1: Only auth pages exist. More routes added in later phases.
+ * App root — full route tree.
  */
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPlaceholder />} />
-        {/* Phase 1 auth routes will be added here */}
-      </Routes>
-    </BrowserRouter>
-  );
-}
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public auth routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-/** Temporary landing — replaced in Phase 2 with real UI */
-function LandingPlaceholder() {
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      gap: '1rem',
-    }}>
-      <h1 style={{
-        fontSize: 'var(--font-size-4xl)',
-        fontWeight: 'var(--font-weight-extrabold)',
-        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-      }}>
-        PhotoFolio
-      </h1>
-      <p style={{ color: 'var(--color-text-secondary)' }}>
-        AI-Powered Event Photography Platform
-      </p>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
-        Phase 1 — Foundation & Auth (in progress)
-      </p>
-    </div>
+          {/* Guest-facing routes (no auth required) */}
+          <Route element={<GuestLayout />}>
+            <Route path="/guest/events/:token" element={<GuestLandingPage />} />
+            <Route path="/guest/consent/:token" element={<ConsentPage />} />
+            <Route path="/guest/gallery/:galleryToken" element={<GalleryPage />} />
+          </Route>
+
+          {/* Authenticated photographer routes */}
+          <Route element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/events" element={<EventListPage />} />
+            <Route path="/events/new" element={<CreateEventPage />} />
+            <Route path="/events/:eventId" element={<EventDetailPage />} />
+            <Route path="/events/:eventId/upload" element={<UploadPage />} />
+            <Route path="/plans" element={<PlansPage />} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
+          </Route>
+
+          {/* Admin routes */}
+          <Route element={
+            <ProtectedRoute requiredRole="admin">
+              <AppLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/tenants" element={<TenantManagePage />} />
+          </Route>
+
+          {/* Redirects */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

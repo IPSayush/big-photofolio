@@ -110,7 +110,7 @@ describe('POST /api/events', () => {
       .expect(403);
 
     expect(res.body.success).toBe(false);
-    expect(res.body.code).toBe('EVENT_QUOTA_EXCEEDED');
+    expect(res.body.code).toBe('QUOTA_EXCEEDED');
   });
 
   it('should create audit log on event creation — SEC-007', async () => {

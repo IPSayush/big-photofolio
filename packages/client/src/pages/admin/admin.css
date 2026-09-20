@@ -1,0 +1,69 @@
+/* Admin page styles */
+
+.plan-dist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.plan-dist__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+}
+
+.plan-dist__name {
+  font-weight: var(--font-weight-medium);
+}
+
+/* Tenant Table */
+.tenant-table {
+  overflow-x: auto;
+}
+
+.tenant-table__header,
+.tenant-table__row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr 1fr;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  align-items: center;
+  min-width: 600px;
+}
+
+.tenant-table__header {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tenant-table__row {
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.tenant-table__row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tenant-table__row:last-child {
+  border-bottom: none;
+}
+
+.tenant-table__name {
+  font-weight: var(--font-weight-medium);
+}
+
+.tenant-table__email {
+  color: var(--color-text-secondary);
+}
+
+.tenant-table__date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

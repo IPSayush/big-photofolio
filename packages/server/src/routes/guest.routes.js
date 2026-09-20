@@ -9,6 +9,7 @@ const router = express.Router();
 const guestController = require('../controllers/guest.controller');
 const { guestAuth } = require('../middleware/guestAuth');
 const { guestLimiter } = require('../middleware/rateLimiter');
+const { checkGuestQuota } = require('../middleware/quotaCheck');
 
 // Apply guest rate limiter to all routes — SEC-008
 router.use(guestLimiter);
@@ -22,7 +23,8 @@ router.get('/events/:qrToken', guestController.getEventByQr);
 router.get('/events/:qrToken/gallery', guestController.getBrowsableGallery);
 
 // POST /api/guest/consent — record consent, get guest token (FR-GUEST-003)
-router.post('/consent', guestController.recordConsent);
+// FR-PLAN-003: Guest quota check
+router.post('/consent', checkGuestQuota, guestController.recordConsent);
 
 // --- Authenticated guest routes ---
 

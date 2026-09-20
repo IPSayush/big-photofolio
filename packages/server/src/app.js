@@ -11,6 +11,9 @@ const helmet = require('helmet');
 const env = require('./config/env');
 const { errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { correlationId } = require('./middleware/correlationId');
+const { requestMetrics } = require('./middleware/requestMetrics');
+const { deepHealthCheck } = require('./controllers/health.controller');
 const logger = require('./utils/logger');
 
 // Route imports
@@ -19,25 +22,33 @@ const profileRoutes = require('./routes/profile.routes');
 const eventRoutes = require('./routes/event.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const guestRoutes = require('./routes/guest.routes');
+const subscriptionRoutes = require('./routes/subscription.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 
 // --- Security middleware ---
 app.use(helmet());
+const { securityHeaders } = require('./middleware/securityHeaders');
+app.use(securityHeaders);
 app.use(cors({
   origin: env.clientUrl,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID'],
 }));
 
 // --- Body parsing ---
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// --- Observability middleware (NFR-OBS-001) ---
+app.use(correlationId);
+app.use(requestMetrics);
+
 // --- Request logging ---
 app.use((req, res, next) => {
-  logger.debug({ method: req.method, url: req.url }, 'Incoming request');
+  logger.debug({ method: req.method, url: req.url, correlationId: req.correlationId }, 'Incoming request');
   next();
 });
 
@@ -54,12 +65,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// --- Deep health check (NFR-OBS-001) ---
+app.get('/api/health/deep', deepHealthCheck);
+
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/events/:eventId/photos', uploadRoutes);
 app.use('/api/guest', guestRoutes);
+app.use('/api', subscriptionRoutes);
+app.use('/api', dashboardRoutes);
 
 // --- 404 handler ---
 app.use((req, res) => {

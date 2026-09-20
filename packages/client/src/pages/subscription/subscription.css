@@ -1,0 +1,73 @@
+/* Subscription page styles */
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+.plan-card {
+  text-align: center;
+  transition: all var(--transition-base);
+}
+.plan-card:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-4px);
+}
+
+.plan-card__name {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+}
+
+.plan-card__price {
+  margin-bottom: var(--space-6);
+}
+
+.plan-card__amount {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-extrabold);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.plan-card__interval {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+}
+
+.plan-card__features {
+  text-align: left;
+  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.sub-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.sub-card__header > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sub-card__plan {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.sub-card__period {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

@@ -132,7 +132,7 @@ describe('POST /api/events/:eventId/photos/upload-url', () => {
       .send({ files: [mockFile({ fileName: 'p3.jpg' })] })
       .expect(403);
 
-    expect(res.body.code).toBe('PHOTO_QUOTA_EXCEEDED');
+    expect(res.body.code).toBe('QUOTA_EXCEEDED');
   });
 
   it('should reject disallowed file types — FR-UPLOAD-004', async () => {

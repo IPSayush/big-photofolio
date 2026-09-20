@@ -19,13 +19,16 @@ const {
   listEventsQuerySchema,
 } = require('../validators/event.validators');
 const { ROLES } = require('@photofolio/shared');
+const { checkEventQuota } = require('../middleware/quotaCheck');
 
 // All event routes: authenticate → authorize → tenant scope
 router.use(authenticate, authorize(ROLES.PHOTOGRAPHER), enforceTenantScope);
 
 // FR-EVENT-001/002: Create event (dual QR codes auto-generated)
+// FR-PLAN-003: Quota check before creation
 router.post(
   '/',
+  checkEventQuota,
   validate(createEventSchema, 'body'),
   eventController.createEvent
 );
