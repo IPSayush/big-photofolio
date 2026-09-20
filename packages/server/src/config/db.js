@@ -18,35 +18,60 @@ let isConnected = false;
  * Connect to MongoDB Atlas.
  * Safe to call multiple times — will reuse existing connection.
  */
-async function connectDB() {
+async function connectDB(retries = 3) {
   if (isConnected) {
     logger.info('MongoDB: reusing existing connection');
     return;
   }
 
-  try {
-    const conn = await mongoose.connect(env.mongodbUri, {
-      // Mongoose 8 defaults are sensible; explicit options only where needed
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const conn = await mongoose.connect(env.mongodbUri, {
+        // Mongoose 8 defaults are sensible; explicit options only where needed
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+      });
 
-    isConnected = true;
-    logger.info({ host: conn.connection.host }, 'MongoDB: connected to Atlas');
+      isConnected = true;
+      logger.info({ host: conn.connection.host }, 'MongoDB: connected to Atlas');
 
-    mongoose.connection.on('error', (err) => {
-      logger.error({ err }, 'MongoDB: connection error');
-    });
+      mongoose.connection.on('error', (err) => {
+        logger.error({ err }, 'MongoDB: connection error');
+      });
 
-    mongoose.connection.on('disconnected', () => {
-      isConnected = false;
-      logger.warn('MongoDB: disconnected');
-    });
-  } catch (err) {
-    logger.error({ err }, 'MongoDB: initial connection failed');
-    // Fail fast in production; let the process manager restart
-    process.exit(1);
+      mongoose.connection.on('disconnected', () => {
+        isConnected = false;
+        logger.warn('MongoDB: disconnected');
+      });
+
+      return; // Success — exit retry loop
+    } catch (err) {
+      const isLastAttempt = attempt === retries;
+      const isWhitelistError = err.message?.includes('whitelist') || err.message?.includes('IP');
+
+      if (isWhitelistError) {
+        logger.error(
+          'MongoDB: IP NOT WHITELISTED. Go to MongoDB Atlas → Network Access → Add Current IP Address.\n' +
+          '  Dashboard: https://cloud.mongodb.com/v2 → Security → Network Access'
+        );
+      }
+
+      logger.error(
+        { err: err.message, attempt, maxRetries: retries },
+        `MongoDB: connection attempt ${attempt}/${retries} failed`
+      );
+
+      if (isLastAttempt) {
+        logger.fatal('MongoDB: all connection attempts failed. Server cannot start.');
+        process.exit(1);
+      }
+
+      // Wait before retry (exponential backoff: 2s, 4s, 8s...)
+      const delay = Math.pow(2, attempt) * 1000;
+      logger.info({ delayMs: delay }, `MongoDB: retrying in ${delay / 1000}s...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
   }
 }
 
