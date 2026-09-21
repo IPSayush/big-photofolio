@@ -492,6 +492,8 @@ For each item: Current State / Recommendation / Reason / Impact if Delayed / Dec
 | DEC-005 | RAW file support deferred to Phase 2 | Assumption to bound MVP scope | Assumption — needs Product Owner confirmation |
 | DEC-006 | Payment provider = Razorpay; stack = MERN (MongoDB/Express/React/Node), frontend + backend hosted on Vercel, object storage on AWS S3, async workers hosted separately from Vercel | Product Owner decision, confirmed post-draft (see Section 1.1) | Confirmed |
 | DEC-007 | Minors/guardian consent handling is unresolved and blocks launch in relevant contexts (e.g., school events) | Gap identified in Section 13 (GAP-003) | Open Decision — high priority |
+| DEC-008 | Register form showed generic "Validation failed" instead of field-level errors (BUG) | Backend validate middleware already returned `details[]` array; frontend RegisterPage.jsx only read the top-level `error` string. Fixed in session 2026-09-21: catch block now reads `details[]` and joins messages; password placeholder updated to show full complexity requirement (uppercase + lowercase + digit). FR-AUTH-001, SEC-002. | Confirmed — Fixed |
+| DEC-009 | Phase 8 Admin Plan CRUD is incomplete — Plan collection was empty, causing a deadlock (BUG / Phase 8 gap) | Plan model exists and quotaCheck middleware correctly reads planId from Tenant, but there are no admin API routes (`POST/PUT/PATCH /api/admin/plans`) and no admin UI page for plan creation (FR-PLAN-001, API-010, SEC-007). Interim workaround: seed script (`packages/server/scripts/seedPlans.js`) inserted 3 default plans (Free Trial ₹0, Pro ₹1,499/mo, Studio ₹3,999/mo) on 2026-09-21. Permanent fix (admin plan CRUD) deferred to Phase 12. | Confirmed — Seed applied; admin CRUD deferred to Phase 12 |
 
 ---
 
@@ -535,6 +537,7 @@ For each item: Current State / Recommendation / Reason / Impact if Delayed / Dec
 | Phase 9 | Security/Testing | Pen-testing, load testing, privacy review | Phases 1–8 | No critical security findings open |
 | Phase 10 | Deployment | Production infra, CI/CD, monitoring | Phase 9 | Production environment live |
 | Phase 11 | Production Hardening | Observability, backup/DR validation, cost tuning | Phase 10 | SLA targets met in production for 30 days |
+| **Phase 12 (PROPOSED — pending confirmation)** | **Phase 8 Gap-Closure + Launch Readiness** | Admin Plan CRUD (FR-PLAN-001, API-010, SEC-007): `POST/PUT/PATCH/GET /api/admin/plans` + admin UI page; register-form field-error UX (DEC-008 follow-up polish); any other confirmed Phase 8 incomplete items; legal/privacy review pre-launch (PRIV-005); final production launch go/no-go checklist | Phase 10/11 | Admin can create/edit/archive plans from UI without any deployment; no critical open Phase 8 items; legal review signed off |
 
 ---
 

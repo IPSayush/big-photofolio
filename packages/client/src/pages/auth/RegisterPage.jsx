@@ -33,7 +33,13 @@ export default function RegisterPage() {
       await register(form);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      const data = err.response?.data;
+      if (data?.details?.length) {
+        // Show field-level messages from validate middleware (SEC-002)
+        setError(data.details.map((d) => d.message).join(' • '));
+      } else {
+        setError(data?.error || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,7 +98,7 @@ export default function RegisterPage() {
             id="password"
             label="Password"
             type="password"
-            placeholder="Min. 8 characters"
+            placeholder="Min. 8 chars, 1 uppercase, 1 lowercase, 1 digit"
             value={form.password}
             onChange={update('password')}
             minLength={8}
