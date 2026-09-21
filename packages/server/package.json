@@ -28,6 +28,7 @@
     "pino": "^9.3.1",
     "pino-pretty": "^11.2.1",
     "rate-limit-redis": "^4.2.0",
+    "razorpay": "^2.9.8",
     "zod": "^3.23.8"
   },
   "devDependencies": {

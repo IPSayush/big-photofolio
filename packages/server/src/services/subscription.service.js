@@ -55,25 +55,6 @@ async function subscribe(tenantId, planId) {
     );
   }
 
-  // Ensure plan has a Razorpay plan ID (create if needed)
-  let razorpayPlanId = plan.razorpayPlanId;
-  if (!razorpayPlanId) {
-    razorpayPlanId = await razorpayService.createRazorpayPlan(plan);
-    plan.razorpayPlanId = razorpayPlanId;
-    await plan.save();
-  }
-
-  // Create Razorpay subscription — FR-PLAN-005
-  const tenant = await Tenant.findById(tenantId);
-  const razorpayResult = await razorpayService.createRazorpaySubscription(
-    razorpayPlanId,
-    {
-      email: tenant.contactEmail,
-      tenantId: tenantId.toString(),
-      trialDays: plan.trialDays || 0,
-    }
-  );
-
   // Determine initial status — FR-PLAN-006
   const now = new Date();
   let status = SUBSCRIPTION_STATUS.ACTIVE;
@@ -92,11 +73,42 @@ async function subscribe(tenantId, planId) {
     periodEnd.setMonth(periodEnd.getMonth() + 1);
   }
 
+  let razorpaySubId = null;
+  let razorpayUrl = null;
+
+  // FR-PLAN-005: Free plans (₹0) skip Razorpay — activate directly.
+  // Razorpay does not allow creating plans with amount 0.
+  const isFree = !plan.pricing.amount || plan.pricing.amount === 0;
+
+  if (!isFree) {
+    // Ensure plan has a Razorpay plan ID (create if needed)
+    let razorpayPlanId = plan.razorpayPlanId;
+    if (!razorpayPlanId) {
+      razorpayPlanId = await razorpayService.createRazorpayPlan(plan);
+      plan.razorpayPlanId = razorpayPlanId;
+      await plan.save();
+    }
+
+    // Create Razorpay subscription — FR-PLAN-005
+    const tenant = await Tenant.findById(tenantId);
+    const razorpayResult = await razorpayService.createRazorpaySubscription(
+      razorpayPlanId,
+      {
+        email: tenant.contactEmail,
+        tenantId: tenantId.toString(),
+        trialDays: plan.trialDays || 0,
+      }
+    );
+
+    razorpaySubId = razorpayResult.subscriptionId;
+    razorpayUrl = razorpayResult.shortUrl;
+  }
+
   // Create subscription record
   const subscription = await Subscription.create({
     tenantId,
     planId: plan._id,
-    razorpaySubscriptionId: razorpayResult.subscriptionId,
+    razorpaySubscriptionId: razorpaySubId,
     status,
     currentPeriodStart: now,
     currentPeriodEnd: periodEnd,
@@ -111,7 +123,7 @@ async function subscribe(tenantId, planId) {
       tenantId,
       planId: plan._id.toString(),
       subscriptionId: subscription._id.toString(),
-      razorpaySubId: razorpayResult.subscriptionId,
+      razorpaySubId: razorpaySubId || 'free-plan',
       status,
     },
     'Subscription created'
@@ -123,7 +135,7 @@ async function subscribe(tenantId, planId) {
     status: subscription.status,
     currentPeriodEnd: subscription.currentPeriodEnd,
     trialEnd: subscription.trialEnd,
-    razorpayUrl: razorpayResult.shortUrl,
+    razorpayUrl,
   };
 }
 

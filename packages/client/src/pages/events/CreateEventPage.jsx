@@ -15,8 +15,7 @@ export default function CreateEventPage() {
     venue: '',
     dateStart: '',
     dateEnd: '',
-    accessMode: 'invite',
-    description: '',
+    accessMode: 'link_only',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,14 +29,26 @@ export default function CreateEventPage() {
 
     try {
       const payload = {
-        ...form,
+        name: form.name,
+        venue: form.venue || undefined,
         dateStart: new Date(form.dateStart).toISOString(),
-        dateEnd: new Date(form.dateEnd).toISOString(),
+        accessMode: form.accessMode,
       };
+
+      // Only include dateEnd if user filled it in
+      if (form.dateEnd) {
+        payload.dateEnd = new Date(form.dateEnd).toISOString();
+      }
+
       const { data } = await api.post('/events', payload);
       navigate(`/events/${data.event._id || data.event.id}`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create event.');
+      const details = err.response?.data?.details;
+      if (details && details.length) {
+        setError(details.map((d) => `${d.field}: ${d.message}`).join('; '));
+      } else {
+        setError(err.response?.data?.error || 'Failed to create event.');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,32 +67,20 @@ export default function CreateEventPage() {
 
             <Input id="name" label="Event Name" placeholder="Wedding of John & Jane" value={form.name} onChange={update('name')} required />
 
-            <Input id="venue" label="Venue" placeholder="Grand Ballroom, Mumbai" value={form.venue} onChange={update('venue')} required />
+            <Input id="venue" label="Venue" placeholder="Grand Ballroom, Mumbai" value={form.venue} onChange={update('venue')} />
 
             <div className="auth-card__row">
               <Input id="dateStart" label="Start Date & Time" type="datetime-local" value={form.dateStart} onChange={update('dateStart')} required />
-              <Input id="dateEnd" label="End Date & Time" type="datetime-local" value={form.dateEnd} onChange={update('dateEnd')} required />
+              <Input id="dateEnd" label="End Date & Time (optional)" type="datetime-local" value={form.dateEnd} onChange={update('dateEnd')} />
             </div>
 
             <div className="input-group">
               <label htmlFor="accessMode" className="input-group__label">Access Mode</label>
               <select id="accessMode" className="input-group__input" value={form.accessMode} onChange={update('accessMode')}>
-                <option value="invite">Invite Only (QR Required)</option>
-                <option value="open">Open Access</option>
+                <option value="link_only">Link Only (QR Required)</option>
+                <option value="public_within_event">Public Within Event</option>
+                <option value="find_my_photos_only">Find My Photos Only</option>
               </select>
-            </div>
-
-            <div className="input-group">
-              <label htmlFor="description" className="input-group__label">Description (optional)</label>
-              <textarea
-                id="description"
-                className="input-group__input"
-                rows={3}
-                placeholder="Add a note for this event..."
-                value={form.description}
-                onChange={update('description')}
-                style={{ resize: 'vertical' }}
-              />
             </div>
 
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
@@ -94,3 +93,4 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
