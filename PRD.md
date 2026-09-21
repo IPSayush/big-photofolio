@@ -537,7 +537,7 @@ For each item: Current State / Recommendation / Reason / Impact if Delayed / Dec
 | Phase 9 | Security/Testing | Pen-testing, load testing, privacy review | Phases 1–8 | No critical security findings open |
 | Phase 10 | Deployment | Production infra, CI/CD, monitoring | Phase 9 | Production environment live |
 | Phase 11 | Production Hardening | Observability, backup/DR validation, cost tuning | Phase 10 | SLA targets met in production for 30 days |
-| **Phase 12 (PROPOSED — pending confirmation)** | **Phase 8 Gap-Closure + Launch Readiness** | Admin Plan CRUD (FR-PLAN-001, API-010, SEC-007): `POST/PUT/PATCH/GET /api/admin/plans` + admin UI page; register-form field-error UX (DEC-008 follow-up polish); any other confirmed Phase 8 incomplete items; legal/privacy review pre-launch (PRIV-005); final production launch go/no-go checklist | Phase 10/11 | Admin can create/edit/archive plans from UI without any deployment; no critical open Phase 8 items; legal review signed off |
+| Phase 12 | Phase 8 Gap-Closure + Launch Readiness | Admin Plan CRUD (FR-PLAN-001, API-010, SEC-007): `GET/POST /api/admin/plans`, `PUT /api/admin/plans/:planId`, `PATCH /api/admin/plans/:planId/status` + `PlanManagePage.jsx` UI; register-form field-error UX (DEC-008, done); legal/privacy review pre-launch (PRIV-005); final production go/no-go checklist | Phase 10/11 | Admin can create/edit/archive plans from UI without any deployment; no critical open Phase 8 items; legal review signed off |
 
 ---
 

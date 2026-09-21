@@ -20,6 +20,7 @@ import SubscriptionPage from './pages/subscription/SubscriptionPage';
 // Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import TenantManagePage from './pages/admin/TenantManagePage';
+import PlanManagePage from './pages/admin/PlanManagePage';
 
 // Guest pages
 import GuestLandingPage from './pages/guest/GuestLandingPage';
@@ -68,6 +69,7 @@ function App() {
           }>
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/tenants" element={<TenantManagePage />} />
+            <Route path="/admin/plans" element={<PlanManagePage />} />
           </Route>
 
           {/* Redirects */}

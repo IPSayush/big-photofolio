@@ -268,10 +268,108 @@ async function suspendEvent(eventId, reason, adminUser) {
   return { eventId: event._id, status: event.status, reason };
 }
 
+// ─── Admin Plan Management (FR-PLAN-001, API-010, SEC-007) ───
+
+/**
+ * List all plans for admin (active + inactive).
+ * @returns {Promise<Array>}
+ */
+async function listAdminPlans() {
+  return Plan.find({})
+    .sort({ sortOrder: 1, 'pricing.amount': 1 })
+    .lean();
+}
+
+/**
+ * Create a new subscription plan.
+ * SEC-007: Audit-logged.
+ * @param {object} planData
+ * @param {object} adminUser - { userId, role, email }
+ * @returns {Promise<object>}
+ */
+async function createPlan(planData, adminUser) {
+  const plan = await Plan.create(planData);
+  await AuditLog.create({
+    actorId: adminUser.userId,
+    actorRole: adminUser.role,
+    actorEmail: adminUser.email,
+    tenantId: null,
+    action: 'plan.create',
+    targetType: 'Plan',
+    targetId: plan._id,
+    metadata: { planName: plan.name, pricing: plan.pricing, quotas: plan.quotas },
+  });
+  return plan;
+}
+
+/**
+ * Update an existing plan's fields.
+ * SEC-007: Audit-logged with before/after snapshot.
+ * @param {string} planId
+ * @param {object} updates
+ * @param {object} adminUser
+ * @returns {Promise<object>}
+ */
+async function updatePlan(planId, updates, adminUser) {
+  const before = await Plan.findById(planId).lean();
+  if (!before) throw new AppError('Plan not found.', 404, 'PLAN_NOT_FOUND');
+
+  const plan = await Plan.findByIdAndUpdate(
+    planId,
+    { $set: updates },
+    { new: true, runValidators: true }
+  ).lean();
+
+  await AuditLog.create({
+    actorId: adminUser.userId,
+    actorRole: adminUser.role,
+    actorEmail: adminUser.email,
+    tenantId: null,
+    action: 'plan.update',
+    targetType: 'Plan',
+    targetId: plan._id,
+    metadata: { before, after: plan },
+  });
+  return plan;
+}
+
+/**
+ * Toggle a plan's isActive status (archive / restore).
+ * SEC-007: Audit-logged.
+ * @param {string} planId
+ * @param {boolean} isActive
+ * @param {object} adminUser
+ * @returns {Promise<object>}
+ */
+async function togglePlanStatus(planId, isActive, adminUser) {
+  const plan = await Plan.findByIdAndUpdate(
+    planId,
+    { $set: { isActive } },
+    { new: true }
+  ).lean();
+  if (!plan) throw new AppError('Plan not found.', 404, 'PLAN_NOT_FOUND');
+
+  await AuditLog.create({
+    actorId: adminUser.userId,
+    actorRole: adminUser.role,
+    actorEmail: adminUser.email,
+    tenantId: null,
+    action: isActive ? 'plan.restore' : 'plan.archive',
+    targetType: 'Plan',
+    targetId: plan._id,
+    metadata: { planName: plan.name, isActive },
+  });
+  return plan;
+}
+
 module.exports = {
   getPhotographerDashboard,
   getAdminDashboard,
   suspendTenant,
   reinstateTenant,
   suspendEvent,
+  listAdminPlans,
+  createPlan,
+  updatePlan,
+  togglePlanStatus,
 };

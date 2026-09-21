@@ -67,3 +67,127 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
+
+/* Plan Admin Table */
+.plan-admin-table {
+  overflow-x: auto;
+}
+
+.plan-admin-table__header,
+.plan-admin-table__row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.5fr 1fr 0.8fr 1fr 1.6fr;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  align-items: center;
+  min-width: 700px;
+}
+
+.plan-admin-table__header {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.plan-admin-table__row {
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.plan-admin-table__row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.plan-admin-table__row:last-child {
+  border-bottom: none;
+}
+
+.plan-admin-table__row--archived {
+  opacity: 0.5;
+}
+
+.plan-admin-table__name {
+  font-weight: var(--font-weight-medium);
+}
+
+.plan-admin-table__interval {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  margin-left: 2px;
+}
+
+.plan-admin-table__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Plan Form (inside Modal) */
+.plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.plan-form__section-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-1);
+}
+
+.plan-form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+
+.plan-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.plan-form__select {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.plan-form__features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.plan-form__footer {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+

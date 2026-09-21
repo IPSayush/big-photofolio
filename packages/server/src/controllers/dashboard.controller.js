@@ -87,10 +87,71 @@ async function suspendEvent(req, res, next) {
   }
 }
 
+/**
+ * GET /api/admin/plans — list all plans for admin (FR-PLAN-001).
+ */
+async function listAdminPlans(req, res, next) {
+  try {
+    const plans = await dashboardService.listAdminPlans();
+    res.json({ success: true, data: { plans } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/admin/plans — create a new plan (FR-PLAN-001, API-010, SEC-007).
+ */
+async function createPlan(req, res, next) {
+  try {
+    const adminUser = { userId: req.user.userId, role: req.user.role, email: req.user.email };
+    const plan = await dashboardService.createPlan(req.body, adminUser);
+    res.status(201).json({ success: true, data: { plan } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PUT /api/admin/plans/:planId — update plan fields (FR-PLAN-001, SEC-007).
+ */
+async function updatePlan(req, res, next) {
+  try {
+    const { planId } = req.params;
+    const adminUser = { userId: req.user.userId, role: req.user.role, email: req.user.email };
+    const plan = await dashboardService.updatePlan(planId, req.body, adminUser);
+    res.json({ success: true, data: { plan } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/admin/plans/:planId/status — archive or restore a plan (FR-PLAN-001, SEC-007).
+ */
+async function togglePlanStatus(req, res, next) {
+  try {
+    const { planId } = req.params;
+    const { isActive } = req.body;
+    if (typeof isActive !== 'boolean') {
+      throw new AppError('isActive must be a boolean.', 400, 'INVALID_STATUS');
+    }
+    const adminUser = { userId: req.user.userId, role: req.user.role, email: req.user.email };
+    const plan = await dashboardService.togglePlanStatus(planId, isActive, adminUser);
+    res.json({ success: true, data: { plan } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getPhotographerDashboard,
   getAdminDashboard,
   suspendTenant,
   reinstateTenant,
   suspendEvent,
+  listAdminPlans,
+  createPlan,
+  updatePlan,
+  togglePlanStatus,
 };

@@ -63,6 +63,10 @@ export default function AppLayout() {
                 <span className="sidebar__link-icon">👥</span>
                 Tenants
               </NavLink>
+              <NavLink to="/admin/plans" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
+                <span className="sidebar__link-icon">📋</span>
+                Plans
+              </NavLink>
             </>
           )}
         </nav>

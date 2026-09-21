@@ -49,4 +49,38 @@ router.post(
   dashController.suspendEvent
 );
 
+// --- Admin Plan Management (FR-PLAN-001, API-010, SEC-007) ---
+
+// List all plans (active + inactive) — admin-only view
+router.get(
+  '/admin/plans',
+  authenticate,
+  authorize(ROLES.ADMIN),
+  dashController.listAdminPlans
+);
+
+// Create a new plan
+router.post(
+  '/admin/plans',
+  authenticate,
+  authorize(ROLES.ADMIN),
+  dashController.createPlan
+);
+
+// Update plan fields
+router.put(
+  '/admin/plans/:planId',
+  authenticate,
+  authorize(ROLES.ADMIN),
+  dashController.updatePlan
+);
+
+// Archive or restore a plan
+router.patch(
+  '/admin/plans/:planId/status',
+  authenticate,
+  authorize(ROLES.ADMIN),
+  dashController.togglePlanStatus
+);
+
 module.exports = router;
