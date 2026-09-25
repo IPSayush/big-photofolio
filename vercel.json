@@ -18,10 +18,7 @@
     "api/index.js": {
       "maxDuration": 30,
       "memory": 512,
-      "includeFiles": [
-        "packages/server/src/**",
-        "packages/shared/**"
-      ]
+      "includeFiles": "packages/{server/src,shared}/**"
     }
   },
   "headers": [
