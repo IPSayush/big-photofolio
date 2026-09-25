@@ -6,6 +6,7 @@
  * - Auto-reconnect handling
  * - Structured logging via pino
  * - Graceful shutdown support
+ * - Serverless-safe: no process.exit() — throws instead
  */
 
 const mongoose = require('mongoose');
@@ -17,17 +18,24 @@ let isConnected = false;
 /**
  * Connect to MongoDB Atlas.
  * Safe to call multiple times — will reuse existing connection.
+ * Serverless-safe: throws on failure instead of process.exit().
  */
 async function connectDB(retries = 3) {
   if (isConnected) {
-    logger.info('MongoDB: reusing existing connection');
+    logger.debug('MongoDB: reusing existing connection');
+    return;
+  }
+
+  // Also reuse if mongoose already has an active connection (warm serverless invocation)
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
+    logger.debug('MongoDB: reusing mongoose connection (warm invocation)');
     return;
   }
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const conn = await mongoose.connect(env.mongodbUri, {
-        // Mongoose 8 defaults are sensible; explicit options only where needed
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
@@ -45,15 +53,14 @@ async function connectDB(retries = 3) {
         logger.warn('MongoDB: disconnected');
       });
 
-      return; // Success — exit retry loop
+      return;
     } catch (err) {
       const isLastAttempt = attempt === retries;
       const isWhitelistError = err.message?.includes('whitelist') || err.message?.includes('IP');
 
       if (isWhitelistError) {
         logger.error(
-          'MongoDB: IP NOT WHITELISTED. Go to MongoDB Atlas → Network Access → Add Current IP Address.\n' +
-          '  Dashboard: https://cloud.mongodb.com/v2 → Security → Network Access'
+          'MongoDB: IP NOT WHITELISTED. Go to MongoDB Atlas > Network Access > Add Current IP Address.'
         );
       }
 
@@ -63,11 +70,12 @@ async function connectDB(retries = 3) {
       );
 
       if (isLastAttempt) {
-        logger.fatal('MongoDB: all connection attempts failed. Server cannot start.');
-        process.exit(1);
+        logger.fatal('MongoDB: all connection attempts failed.');
+        // Serverless-safe: throw instead of process.exit(1)
+        // so the request gets a proper 500 error response
+        throw new Error('MongoDB connection failed after all retries');
       }
 
-      // Wait before retry (exponential backoff: 2s, 4s, 8s...)
       const delay = Math.pow(2, attempt) * 1000;
       logger.info({ delayMs: delay }, `MongoDB: retrying in ${delay / 1000}s...`);
       await new Promise(r => setTimeout(r, delay));

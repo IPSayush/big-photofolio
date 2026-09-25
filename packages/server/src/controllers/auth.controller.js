@@ -1,5 +1,5 @@
 /**
- * Auth Controller — thin HTTP layer for auth operations.
+ * Auth Controller â€” thin HTTP layer for auth operations.
  * 
  * Controllers handle request/response concerns only.
  * All business logic is in auth.service.js.
@@ -8,6 +8,7 @@
  */
 
 const authService = require('../services/auth.service');
+const Tenant = require('../models/Tenant');
 const logger = require('../utils/logger');
 
 /**
@@ -55,11 +56,19 @@ async function login(req, res, next) {
       userAgent: req.get('user-agent'),
     });
 
+    // Fetch tenant so frontend has it immediately after login (matches register response shape)
+    let tenant = null;
+    if (result.user.tenantId) {
+      const tenantDoc = await Tenant.findById(result.user.tenantId);
+      tenant = tenantDoc?.toJSON() || null;
+    }
+
     res.status(200).json({
       success: true,
       message: 'Login successful.',
       data: {
         user: result.user,
+        tenant,
         tokens: result.tokens,
       },
     });
