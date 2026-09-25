@@ -18,20 +18,29 @@
     "api/index.js": {
       "maxDuration": 30,
       "memory": 512,
-      "includeFiles": "packages/server/src/**"
+      "includeFiles": [
+        "packages/server/src/**",
+        "packages/shared/**"
+      ]
     }
   },
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ]
