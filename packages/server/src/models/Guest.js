@@ -19,7 +19,6 @@ const guestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event ID is required'],
-      index: true,
     },
     // SEC-001: Tenant-scoped
     tenantId: {

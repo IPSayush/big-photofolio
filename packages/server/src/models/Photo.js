@@ -19,14 +19,12 @@ const photoSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
       required: [true, 'Tenant ID is required'],
-      index: true,
     },
     // Photo belongs to a specific event
     eventId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event ID is required'],
-      index: true,
     },
     // SEC-003: S3 key in private bucket — never a public URL
     s3OriginalKey: {
@@ -66,7 +64,6 @@ const photoSchema = new mongoose.Schema(
     uploadBatchId: {
       type: String,
       required: true,
-      index: true,
     },
     // FR-UPLOAD-003: Tracks whether client confirmed the S3 upload completed
     uploadConfirmed: {

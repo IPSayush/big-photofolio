@@ -9,13 +9,26 @@ const { Queue } = require('bullmq');
 const env = require('./env');
 const logger = require('../utils/logger');
 
-// Shared Redis connection options from existing config
-const connectionOpts = {
-  connection: {
-    host: new URL(env.redisUrl).hostname || 'localhost',
-    port: parseInt(new URL(env.redisUrl).port, 10) || 6379,
-  },
-};
+/**
+ * Parse Redis URL into ioredis-compatible connection options.
+ * Handles redis:// and rediss:// (TLS) URLs.
+ */
+function parseRedisUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const opts = {
+      host: parsed.hostname || 'localhost',
+      port: parseInt(parsed.port, 10) || 6379,
+      maxRetriesPerRequest: null, // Required by BullMQ
+    };
+    if (parsed.password) opts.password = decodeURIComponent(parsed.password);
+    if (parsed.username && parsed.username !== 'default') opts.username = parsed.username;
+    if (parsed.protocol === 'rediss:') opts.tls = {};
+    return opts;
+  } catch {
+    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null };
+  }
+}
 
 // Queue singletons
 const queues = {};
@@ -31,30 +44,19 @@ class MockQueue {
   }
 
   async add(jobName, data, opts) {
-    const job = { id: `mock-${Date.now()}-${Math.random()}`, name: jobName, data, opts };
+    const job = { id: 'mock-' + Date.now() + '-' + Math.random(), name: jobName, data, opts };
     this.jobs.push(job);
     return job;
   }
 
-  async close() {
-    // no-op
-  }
-
-  getJobs() {
-    return this.jobs;
-  }
-
-  clearJobs() {
-    this.jobs = [];
-  }
+  async close() { /* no-op */ }
+  getJobs() { return this.jobs; }
+  clearJobs() { this.jobs = []; }
 }
 
 /**
  * Get or create a named queue.
  * Returns MockQueue in test mode.
- *
- * @param {string} name - Queue name.
- * @returns {Queue|MockQueue}
  */
 function getQueue(name) {
   if (queues[name]) return queues[name];
@@ -66,38 +68,24 @@ function getQueue(name) {
   }
 
   try {
-    queues[name] = new Queue(name, connectionOpts);
+    const connection = parseRedisUrl(env.redisUrl);
+    queues[name] = new Queue(name, { connection });
     logger.info({ queue: name }, 'BullMQ queue created');
     return queues[name];
   } catch (err) {
     logger.error({ err, queue: name }, 'Failed to create BullMQ queue');
-    // Return mock queue as fallback in dev
     queues[name] = new MockQueue(name);
     return queues[name];
   }
 }
 
-// Named queue accessors
 const QUEUE_NAMES = Object.freeze({
   IMAGE_PROCESSING: 'image-processing',
   FACE_PROCESSING: 'face-processing',
 });
 
-/**
- * Get the image processing queue.
- * FR-PIPE-001: Used to enqueue photos for async derivative generation.
- */
-function getImageProcessingQueue() {
-  return getQueue(QUEUE_NAMES.IMAGE_PROCESSING);
-}
-
-/**
- * Get the face processing queue.
- * FR-PIPE-002: Used to enqueue photos for face detection/embedding/matching.
- */
-function getFaceProcessingQueue() {
-  return getQueue(QUEUE_NAMES.FACE_PROCESSING);
-}
+function getImageProcessingQueue() { return getQueue(QUEUE_NAMES.IMAGE_PROCESSING); }
+function getFaceProcessingQueue() { return getQueue(QUEUE_NAMES.FACE_PROCESSING); }
 
 module.exports = {
   getQueue,

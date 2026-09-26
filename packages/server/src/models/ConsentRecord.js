@@ -17,7 +17,6 @@ const consentRecordSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Guest',
       required: [true, 'Guest ID is required'],
-      index: true,
     },
     // Event context
     eventId: {

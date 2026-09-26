@@ -33,7 +33,6 @@ const auditLogSchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      index: true,
       // Examples: 'user.register', 'user.login', 'tenant.suspend',
       // 'plan.create', 'plan.update', 'event.create', 'event.close'
     },

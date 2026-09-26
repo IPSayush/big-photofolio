@@ -41,7 +41,6 @@ const tenantSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(TENANT_STATUS),
       default: TENANT_STATUS.ACTIVE,
-      index: true,
     },
     // FR-PLAN-003/004: plan and usage tracking
     planId: {

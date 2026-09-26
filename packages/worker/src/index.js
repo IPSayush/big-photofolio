@@ -20,12 +20,20 @@ const { connectDB, disconnectDB } = require('./db');
 const { processImage } = require('./processors/imageProcessor');
 const { processFaces } = require('./processors/faceProcessor');
 
+// Determine if pino-pretty is available
+let pinoTransport = undefined;
+if (config.nodeEnv !== 'production') {
+  try {
+    require.resolve('pino-pretty');
+    pinoTransport = { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } };
+  } catch {
+    // pino-pretty not available in production
+  }
+}
+
 const logger = pino({
   level: config.nodeEnv === 'production' ? 'info' : 'debug',
-  transport:
-    config.nodeEnv !== 'production'
-      ? { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } }
-      : undefined,
+  transport: pinoTransport,
 });
 
 let worker = null;
@@ -37,13 +45,17 @@ let faceWorker = null;
 function parseRedisUrl(url) {
   try {
     const parsed = new URL(url);
-    return {
+    const opts = {
       host: parsed.hostname || 'localhost',
       port: parseInt(parsed.port, 10) || 6379,
-      password: parsed.password || undefined,
+      maxRetriesPerRequest: null, // Required by BullMQ
     };
+    if (parsed.password) opts.password = decodeURIComponent(parsed.password);
+    if (parsed.username && parsed.username !== 'default') opts.username = parsed.username;
+    if (parsed.protocol === 'rediss:') opts.tls = {};
+    return opts;
   } catch {
-    return { host: 'localhost', port: 6379 };
+    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null };
   }
 }
 

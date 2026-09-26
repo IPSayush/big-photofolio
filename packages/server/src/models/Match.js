@@ -14,7 +14,6 @@ const matchSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Guest',
       required: [true, 'Guest ID is required'],
-      index: true,
     },
     // Photo containing the matched face
     photoId: {
@@ -34,7 +33,6 @@ const matchSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event ID is required'],
-      index: true,
     },
     // SEC-001: Tenant-scoped
     tenantId: {

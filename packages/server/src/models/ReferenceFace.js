@@ -15,14 +15,12 @@ const referenceFaceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Guest',
       required: [true, 'Guest ID is required'],
-      index: true,
     },
     // SEC-006: Event-scoped
     eventId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event ID is required'],
-      index: true,
     },
     // SEC-001: Tenant-scoped
     tenantId: {

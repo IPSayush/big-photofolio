@@ -24,14 +24,12 @@ const faceDetectionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event ID is required'],
-      index: true,
     },
     // SEC-001: Tenant-scoped
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
       required: [true, 'Tenant ID is required'],
-      index: true,
     },
     // Bounding box — normalized 0-1 coordinates
     boundingBox: {

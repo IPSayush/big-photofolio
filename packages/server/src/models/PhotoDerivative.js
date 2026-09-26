@@ -15,7 +15,6 @@ const photoDerivativeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Photo',
       required: [true, 'Photo ID is required'],
-      index: true,
     },
     // SEC-001: Tenant-scoped
     tenantId: {
@@ -29,7 +28,6 @@ const photoDerivativeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event ID is required'],
-      index: true,
     },
     // FR-PIPE-002: Derivative type
     type: {
