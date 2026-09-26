@@ -1,6 +1,7 @@
 /**
  * Upload Page — drag & drop multi-file upload.
  * FR-UPLOAD-002: Pre-signed S3 URLs + parallel upload.
+ * FR-UPLOAD-005: SHA-256 hash for duplicate detection.
  */
 
 import { useState, useRef, useCallback } from 'react';
@@ -11,6 +12,19 @@ import '../dashboard/dashboard.css';
 import './events.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+
+/**
+ * Compute SHA-256 hash of a File object using Web Crypto API.
+ * FR-UPLOAD-005: Required for server-side duplicate detection.
+ * @param {File} file
+ * @returns {Promise<string>} 64-char lowercase hex SHA-256 hash
+ */
+async function computeSHA256(file) {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 export default function UploadPage() {
   const { eventId } = useParams();
@@ -45,19 +59,36 @@ export default function UploadPage() {
     setError('');
 
     try {
-      // 1. Request pre-signed URLs
-      const filesMeta = files.map((f) => ({
-        fileName: f.name,
-        contentType: f.file.type,
-        sizeBytes: f.size,
-      }));
+      // 1. Compute SHA-256 hashes for duplicate detection (FR-UPLOAD-005)
+      setFiles((prev) => prev.map((f) => ({ ...f, status: 'hashing' })));
 
+      const filesMeta = await Promise.all(
+        files.map(async (f) => ({
+          fileName: f.name,
+          contentType: f.file.type,
+          sizeBytes: f.size,
+          hash: await computeSHA256(f.file),
+        }))
+      );
+
+      setFiles((prev) => prev.map((f) => ({ ...f, status: 'pending' })));
+
+      // 2. Request pre-signed URLs
       const { data } = await api.post(`/events/${eventId}/photos/upload-url`, { files: filesMeta });
 
-      // 2. Upload each file to S3
+      // 3. Upload each file to S3 (skip duplicates)
       const photoIds = [];
-      for (let i = 0; i < data.uploads.length; i++) {
-        const { uploadUrl, photoId } = data.uploads[i];
+      for (let i = 0; i < data.files.length; i++) {
+        const { uploadUrl, photoId, isDuplicate } = data.files[i];
+
+        // FR-UPLOAD-005: Skip duplicates — server flagged them
+        if (isDuplicate) {
+          setFiles((prev) => prev.map((f, idx) =>
+            idx === i ? { ...f, status: 'duplicate' } : f
+          ));
+          continue;
+        }
+
         photoIds.push(photoId);
 
         setFiles((prev) => prev.map((f, idx) =>
@@ -81,10 +112,9 @@ export default function UploadPage() {
         }
       }
 
-      // 3. Confirm upload
-      const successIds = photoIds.filter((_, i) => files[i]?.status !== 'failed');
-      if (successIds.length > 0) {
-        await api.post(`/events/${eventId}/photos/confirm`, { photoIds: successIds });
+      // 4. Confirm upload for successfully uploaded photos
+      if (photoIds.length > 0) {
+        await api.post(`/events/${eventId}/photos/confirm`, { photoIds });
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Upload failed.');
@@ -95,6 +125,7 @@ export default function UploadPage() {
 
   const completed = files.filter((f) => f.status === 'done').length;
   const failed = files.filter((f) => f.status === 'failed').length;
+  const duplicates = files.filter((f) => f.status === 'duplicate').length;
 
   return (
     <div>
@@ -115,7 +146,7 @@ export default function UploadPage() {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <div className="upload-zone__icon">📤</div>
+        <div className="upload-zone__icon">📷</div>
         <div className="upload-zone__title">Drag & drop photos here</div>
         <div className="upload-zone__desc">or click to browse. JPEG, PNG, WebP, HEIC supported.</div>
         <input
@@ -135,10 +166,11 @@ export default function UploadPage() {
             <p style={{ color: 'var(--color-text-secondary)' }}>
               {files.length} file{files.length !== 1 && 's'} selected
               {completed > 0 && <> · <span style={{ color: 'var(--color-success)' }}>{completed} uploaded</span></>}
+              {duplicates > 0 && <> · <span style={{ color: 'var(--color-warning, #f59e0b)' }}>{duplicates} duplicate{duplicates !== 1 && 's'}</span></>}
               {failed > 0 && <> · <span style={{ color: 'var(--color-error)' }}>{failed} failed</span></>}
             </p>
             <Button variant="primary" onClick={handleUpload} loading={uploading} disabled={uploading || completed === files.length}>
-              {completed === files.length ? '✓ Done' : `Upload ${files.length} Files`}
+              {uploading ? 'Uploading...' : completed === files.length ? '✅ Done' : `Upload ${files.length} Files`}
             </Button>
           </div>
 
@@ -147,8 +179,14 @@ export default function UploadPage() {
               <div key={i} className="upload-file">
                 <span className="upload-file__name">{f.name}</span>
                 <span className="upload-file__size">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
-                <Badge variant={f.status === 'done' ? 'success' : f.status === 'failed' ? 'error' : f.status === 'uploading' ? 'info' : 'default'}>
-                  {f.status}
+                <Badge variant={
+                  f.status === 'done' ? 'success' :
+                  f.status === 'failed' ? 'error' :
+                  f.status === 'uploading' || f.status === 'hashing' ? 'info' :
+                  f.status === 'duplicate' ? 'warning' :
+                  'default'
+                }>
+                  {f.status === 'hashing' ? 'computing hash...' : f.status}
                 </Badge>
               </div>
             ))}
