@@ -205,3 +205,37 @@ containing non-ASCII characters (emojis, special symbols). PowerShell's string h
 corrupts multi-byte UTF-8 sequences.
 
 **File:** `packages/client/src/pages/guest/ConsentPage.jsx`
+
+
+### FEATURE: FR-EVENT-007 — Permanent Event Delete with Async Cascade — Built 2026-09-28
+
+**What was built:**
+
+Backend:
+- `DELETE /api/events/:eventId` endpoint (SEC-001 tenant-scoped, SEC-007 audit-logged)
+- `eventDelete.service.js`: marks event as 'deleting' + enqueues BullMQ job
+- Cascade deletes: Matches, FaceDetections, PhotoDerivatives, Photos,
+  ConsentRecords, ReferenceFaces, Guests, then Event itself
+- S3 batch delete: `batchDeleteObjects()` and `listObjectsByPrefix()` in s3.js
+- Queue timeout wrapper (10s) prevents Vercel 504 — if queue fails, event
+  stays marked 'deleting' for retry
+
+Worker:
+- `eventDeleteProcessor.js` processes cascade-delete jobs
+- `worker/index.js` listens on 'event-delete' queue (concurrency: 1, 10 min lock)
+
+Frontend:
+- EventDetailPage: red 'Delete Event' button with strong confirmation modal
+  (user must type event name exactly to enable delete)
+- 'Deleting...' badge + disabled actions when status is 'deleting'
+
+Shared:
+- Added `DELETING` to `EVENT_STATUS` enum in `@photofolio/shared`
+
+**Files:** 10 files (see commit c078526 and 3dbce3a)
+
+**PRD updates:** FR-EVENT-007 added to Section 8.4, DEC-010 added to Section 15
+
+**Test result:** DELETE returns 202, event status confirmed as 'deleting'.
+Note: actual cascade deletion requires the BullMQ worker on Railway to be
+running. Without the worker, events stay in 'deleting' status indefinitely.
