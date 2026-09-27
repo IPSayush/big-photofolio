@@ -34,15 +34,20 @@ export default function GuestLandingPage() {
     );
   }
 
+  // Event model stores dates as event.date.start / event.date.end (nested)
+  // Guest service returns flattened dateStart/dateEnd — handle both shapes
+  const startDate = event.date?.start || event.dateStart;
+  const formattedDate = startDate
+    ? new Date(startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Date not set';
+
   return (
     <div className="guest-landing">
       <div className="guest-landing__header">
         <Badge variant="success">Live Event</Badge>
         <h1 className="guest-landing__title">{event.name}</h1>
         <p className="guest-landing__venue">📍 {event.venue}</p>
-        <p className="guest-landing__date">
-          📅 {new Date(event.dateStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
+        <p className="guest-landing__date">📅 {formattedDate}</p>
       </div>
 
       <Card className="guest-landing__cta">

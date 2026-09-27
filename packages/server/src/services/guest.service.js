@@ -1,5 +1,5 @@
 /**
- * Guest Service — guest-facing business logic.
+ * Guest Service â€” guest-facing business logic.
  * FR-GUEST-001 through FR-GUEST-005: Consent flow.
  * FR-SELFIE-001 through FR-SELFIE-005: Selfie validation.
  * FR-GALLERY-001 through FR-GALLERY-005: Gallery delivery.
@@ -23,14 +23,14 @@ const { GUEST_STATUS, PHOTO_STATUS } = require('@photofolio/shared');
 const logger = require('../utils/logger');
 const env = require('../config/env');
 
-// Current consent text version — PRIV-002: versioned, re-shown if changed
+// Current consent text version â€” PRIV-002: versioned, re-shown if changed
 const CONSENT_TEXT_VERSION = '1.0';
 const CONSENT_TEXT = `By proceeding, you consent to the use of facial recognition technology to identify your photos from this event. Your selfie will be processed to create a facial representation (embedding) that is used solely to match you with photos from this specific event. Your data will not be shared across events or with third parties. You may withdraw consent at any time, which will delete your facial data.`;
 
 /**
  * Look up an event by QR token (A or B).
- * FR-GUEST-001: QR-A → event info / gallery.
- * FR-GUEST-002: QR-B → consent flow.
+ * FR-GUEST-001: QR-A â†’ event info / gallery.
+ * FR-GUEST-002: QR-B â†’ consent flow.
  *
  * @param {string} qrToken - QR code token.
  * @returns {Promise<{ event, qrType }>}
@@ -53,8 +53,8 @@ async function getEventByQrToken(qrToken) {
     event: {
       id: event._id,
       name: event.name,
-      dateStart: event.dateStart,
-      dateEnd: event.dateEnd,
+      dateStart: event.date?.start || null,
+      dateEnd: event.date?.end || null,
       venue: event.venue,
       accessMode: event.accessMode,
       status: event.status,
@@ -92,7 +92,7 @@ async function recordConsent(qrToken, consentTextVersion) {
     );
   }
 
-  // Generate session token — DEC-003
+  // Generate session token â€” DEC-003
   const { plainToken, hash } = Guest.generateSessionToken();
 
   // Create guest record
@@ -103,7 +103,7 @@ async function recordConsent(qrToken, consentTextVersion) {
     status: GUEST_STATUS.ACTIVE,
   });
 
-  // Create immutable consent record — FR-GUEST-003
+  // Create immutable consent record â€” FR-GUEST-003
   const consentRecord = await ConsentRecord.create({
     guestId: guest._id,
     eventId: event._id,
@@ -134,7 +134,7 @@ async function recordConsent(qrToken, consentTextVersion) {
 }
 
 /**
- * Process a guest selfie — validate and create reference face.
+ * Process a guest selfie â€” validate and create reference face.
  * FR-SELFIE-002: Validate image quality.
  * FR-SELFIE-003: Detect exactly one face.
  * FR-SELFIE-004: Process to embedding.
@@ -151,7 +151,7 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     throw new AppError('Guest not found.', 404, 'GUEST_NOT_FOUND');
   }
 
-  // Check consent exists — PRIV-001
+  // Check consent exists â€” PRIV-001
   if (!guest.consentRecordId) {
     throw new AppError(
       'Consent is required before selfie upload.',
@@ -160,7 +160,7 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     );
   }
 
-  // Update status — FR-SELFIE-005
+  // Update status â€” FR-SELFIE-005
   guest.selfieStatus = 'validating';
   await guest.save();
 
@@ -181,7 +181,7 @@ async function processSelfie(guestId, imageBuffer, contentType) {
         metadata = { width: 640, height: 480 };
       }
     } catch {
-      // In test mode with mock images, sharp may fail — use defaults
+      // In test mode with mock images, sharp may fail â€” use defaults
       if (process.env.NODE_ENV !== 'test') {
         guest.selfieStatus = 'rejected';
         guest.selfieRejectionReason = 'Invalid image format.';
@@ -219,7 +219,7 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     vector[i] = vector[i] / magnitude;
   }
 
-  // Create/update reference face — FR-SELFIE-004
+  // Create/update reference face â€” FR-SELFIE-004
   // Idempotent: upsert by guestId + eventId
   const referenceFace = await ReferenceFace.findOneAndUpdate(
     { guestId: guest._id, eventId: guest.eventId, deletedAt: null },
@@ -287,7 +287,7 @@ async function getBrowsableGallery(eventId, { page = 1, limit = 20 } = {}) {
     Photo.countDocuments({ eventId, status: PHOTO_STATUS.PROCESSED }),
   ]);
 
-  // Attach signed derivative URLs — FR-GALLERY-003
+  // Attach signed derivative URLs â€” FR-GALLERY-003
   const derivativeBucket = env.aws.s3BucketDerivatives || env.aws.s3Bucket;
   const photosWithUrls = await Promise.all(
     photos.map(async (photo) => {
@@ -335,7 +335,7 @@ async function getPersonalizedGallery(guestId, eventId) {
   const processedPhotos = await Photo.countDocuments({ eventId, status: PHOTO_STATUS.PROCESSED });
   const processingComplete = totalPhotos === 0 || processedPhotos === totalPhotos;
 
-  // Get derivative URLs for matched photos — FR-GALLERY-001/003
+  // Get derivative URLs for matched photos â€” FR-GALLERY-001/003
   const derivativeBucket = env.aws.s3BucketDerivatives || env.aws.s3Bucket;
   const photosWithUrls = await Promise.all(
     matches.map(async (match) => {
@@ -374,7 +374,7 @@ async function getPersonalizedGallery(guestId, eventId) {
 }
 
 /**
- * Withdraw consent — delete face data and mark guest.
+ * Withdraw consent â€” delete face data and mark guest.
  * FR-GUEST-005: Self-service consent withdrawal.
  * PRIV-003: Delete reference selfie/face vector.
  *
@@ -387,7 +387,7 @@ async function withdrawConsent(guestId) {
     throw new AppError('Guest not found.', 404, 'GUEST_NOT_FOUND');
   }
 
-  // Soft-delete reference face — PRIV-003
+  // Soft-delete reference face â€” PRIV-003
   await ReferenceFace.updateMany(
     { guestId: guest._id, eventId: guest.eventId },
     { $set: { deletedAt: new Date(), embedding: [] } }

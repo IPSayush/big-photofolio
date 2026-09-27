@@ -28,6 +28,10 @@ export default function EventDetailPage() {
 
   const stats = event.stats || {};
 
+  // Event model stores dates as event.date.start / event.date.end (nested object)
+  const startDate = event.date?.start ? new Date(event.date.start).toLocaleString('en-IN') : 'Not set';
+  const endDate = event.date?.end ? new Date(event.date.end).toLocaleString('en-IN') : 'Same as start';
+
   return (
     <div className="event-detail">
       <div className="page-header">
@@ -46,9 +50,9 @@ export default function EventDetailPage() {
           <Card.Body>
             <div className="event-info-grid">
               <div><span className="event-info__label">📍 Venue</span><span>{event.venue}</span></div>
-              <div><span className="event-info__label">📅 Start</span><span>{new Date(event.dateStart).toLocaleString('en-IN')}</span></div>
-              <div><span className="event-info__label">📅 End</span><span>{new Date(event.dateEnd).toLocaleString('en-IN')}</span></div>
-              <div><span className="event-info__label">🔑 Access</span><span>{event.accessMode}</span></div>
+              <div><span className="event-info__label">📅 Start</span><span>{startDate}</span></div>
+              <div><span className="event-info__label">📅 End</span><span>{endDate}</span></div>
+              <div><span className="event-info__label">🔐 Access</span><span>{event.accessMode}</span></div>
             </div>
           </Card.Body>
         </Card>
@@ -56,11 +60,11 @@ export default function EventDetailPage() {
 
       {/* Stats */}
       <div className="stats-grid" style={{ marginTop: 'var(--space-6)' }}>
-        <StatCard icon="📷" label="Photos" value={stats.photoCount || 0} />
+        <StatCard icon="📸" label="Photos" value={stats.photoCount || 0} />
         <StatCard icon="✅" label="Processed" value={stats.processedPhotoCount || 0} />
         <StatCard icon="❌" label="Failed" value={stats.failedPhotoCount || 0} />
         <StatCard icon="👥" label="Guests" value={stats.guestCount || 0} />
-        <StatCard icon="🤖" label="Matches" value={stats.matchCount || 0} />
+        <StatCard icon="🔍" label="Matches" value={stats.matchCount || 0} />
         <StatCard icon="💾" label="Storage" value={formatBytes(stats.storageUsedBytes || 0)} />
       </div>
 
@@ -94,7 +98,7 @@ export default function EventDetailPage() {
       {/* Actions */}
       <div className="event-detail__actions">
         <Link to={`/events/${eventId}/upload`}>
-          <Button variant="primary" size="lg">📤 Upload Photos</Button>
+          <Button variant="primary" size="lg">📷 Upload Photos</Button>
         </Link>
       </div>
     </div>

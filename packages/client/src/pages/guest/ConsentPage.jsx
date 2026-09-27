@@ -1,10 +1,16 @@
 /**
  * Consent Page — QR-B scan → consent + selfie.
- * FR-GUEST-003: Consent form.
- * FR-SELFIE-001: Selfie capture.
+ * FR-GUEST-003: Consent form with versioned text.
+ * FR-SELFIE-001: Selfie capture and submission.
+ *
+ * Two-step flow matching backend API:
+ *   Step 1: POST /api/guest/consent  (JSON: { qrToken, consentTextVersion })
+ *           → returns { guestToken, guestId, eventId }
+ *   Step 2: POST /api/guest/selfie   (JSON: { imageData (base64), contentType })
+ *           with Authorization: Guest <guestToken>
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, Button, Input } from '../../components/common';
@@ -15,6 +21,10 @@ export default function ConsentPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
+  // Event info loaded via QR token
+  const [eventInfo, setEventInfo] = useState(null);
+  const [eventLoading, setEventLoading] = useState(true);
+
   const [step, setStep] = useState('consent'); // consent → selfie → submitting → done
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
   const [selfieFile, setSelfieFile] = useState(null);
@@ -22,9 +32,44 @@ export default function ConsentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleConsent = (e) => {
+  // Guest auth token received after consent — needed for selfie upload
+  const [guestToken, setGuestToken] = useState(null);
+
+  // Load event info on mount to get consent text version
+  useEffect(() => {
+    api.get(`/guest/events/${token}`)
+      .then(({ data }) => {
+        setEventInfo(data);
+      })
+      .catch((err) => {
+        setError(err.response?.data?.error || 'Invalid QR code.');
+      })
+      .finally(() => setEventLoading(false));
+  }, [token]);
+
+  const handleConsent = async (e) => {
     e.preventDefault();
-    setStep('selfie');
+    setLoading(true);
+    setError('');
+
+    try {
+      // Step 1: Record consent — FR-GUEST-003
+      // Backend expects JSON: { qrToken, consentTextVersion }
+      const consentVersion = eventInfo?.consentTextVersion || '1.0';
+
+      const { data } = await api.post('/guest/consent', {
+        qrToken: token,
+        consentTextVersion: consentVersion,
+      });
+
+      // Save guest token for selfie upload auth
+      setGuestToken(data.guestToken);
+      setStep('selfie');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to record consent.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFileSelect = (e) => {
@@ -36,38 +81,46 @@ export default function ConsentPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selfieFile) return;
+    if (!selfieFile || !guestToken) return;
     setLoading(true);
     setError('');
     setStep('submitting');
 
     try {
-      const formData = new FormData();
-      formData.append('name', form.name);
-      formData.append('email', form.email);
-      formData.append('phone', form.phone);
-      formData.append('qrToken', token);
-      formData.append('consentGiven', 'true');
-      formData.append('selfie', selfieFile);
+      // Convert file to base64 for the JSON API — backend expects { imageData, contentType }
+      const arrayBuffer = await selfieFile.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
 
-      const { data } = await api.post('/guest/consent', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Step 2: Upload selfie — FR-SELFIE-001
+      // Uses guest auth: Authorization: Guest <guestToken>
+      const { data } = await api.raw.post('/api/guest/selfie', {
+        imageData: base64,
+        contentType: selfieFile.type || 'image/jpeg',
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Guest ${guestToken}`,
+        },
       });
 
       setStep('done');
       // Navigate to gallery after short delay
       setTimeout(() => {
-        if (data.galleryToken) {
-          navigate(`/guest/gallery/${data.galleryToken}`);
-        }
-      }, 2000);
+        navigate(`/guest/gallery/${guestToken}`);
+      }, 3000);
     } catch (err) {
-      setError(err.response?.data?.error || 'Submission failed.');
+      setError(err.response?.data?.error || 'Selfie upload failed.');
       setStep('selfie');
     } finally {
       setLoading(false);
     }
   };
+
+  if (eventLoading) {
+    return <div className="page-center" style={{ color: 'var(--color-text-secondary)' }}>Loading...</div>;
+  }
 
   if (step === 'done') {
     return (
@@ -91,12 +144,19 @@ export default function ConsentPage() {
           <Card.Body>
             <h2 className="guest-consent__title">👋 Welcome!</h2>
             <p className="guest-consent__desc">
-              Enter your details and upload a selfie. Our AI will find all event photos you appear in.
+              Enter your details and consent to facial recognition. Our AI will find all event photos you appear in.
             </p>
 
-            <div className="guest-consent__privacy">
-              🔒 Your selfie is processed securely and never shared. You can request deletion anytime.
-            </div>
+            {eventInfo?.consentText && (
+              <div className="guest-consent__privacy">
+                🔒 {eventInfo.consentText}
+              </div>
+            )}
+            {!eventInfo?.consentText && (
+              <div className="guest-consent__privacy">
+                🔒 Your selfie is processed securely and never shared. You can request deletion anytime.
+              </div>
+            )}
 
             <form onSubmit={handleConsent} className="guest-consent__form">
               {error && <div className="auth-card__error">{error}</div>}
@@ -110,7 +170,7 @@ export default function ConsentPage() {
                 <span>I consent to facial recognition processing for this event only</span>
               </label>
 
-              <Button type="submit" variant="primary" fullWidth size="lg">Continue →</Button>
+              <Button type="submit" variant="primary" fullWidth size="lg" loading={loading}>Continue →</Button>
             </form>
           </Card.Body>
         </Card>
