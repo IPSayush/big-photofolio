@@ -1,12 +1,12 @@
 /**
- * Consent Page — QR-B scan → consent + selfie.
+ * Consent Page â€” QR-B scan â†’ consent + selfie.
  * FR-GUEST-003: Consent form with versioned text.
  * FR-SELFIE-001: Selfie capture and submission.
  *
  * Two-step flow matching backend API:
  *   Step 1: POST /api/guest/consent  (JSON: { qrToken, consentTextVersion })
- *           → returns { guestToken, guestId, eventId }
- *   Step 2: POST /api/guest/selfie   (JSON: { imageData (base64), contentType })
+ *           â†’ returns { guestToken, guestId, eventId }
+ *   Step 2: POST /guest/selfie (via api.raw, baseURL already has /api)   (JSON: { imageData (base64), contentType })
  *           with Authorization: Guest <guestToken>
  */
 
@@ -25,14 +25,14 @@ export default function ConsentPage() {
   const [eventInfo, setEventInfo] = useState(null);
   const [eventLoading, setEventLoading] = useState(true);
 
-  const [step, setStep] = useState('consent'); // consent → selfie → submitting → done
+  const [step, setStep] = useState('consent'); // consent â†’ selfie â†’ submitting â†’ done
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
   const [selfieFile, setSelfieFile] = useState(null);
   const [selfiePreview, setSelfiePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Guest auth token received after consent — needed for selfie upload
+  // Guest auth token received after consent â€” needed for selfie upload
   const [guestToken, setGuestToken] = useState(null);
 
   // Load event info on mount to get consent text version
@@ -53,7 +53,7 @@ export default function ConsentPage() {
     setError('');
 
     try {
-      // Step 1: Record consent — FR-GUEST-003
+      // Step 1: Record consent â€” FR-GUEST-003
       // Backend expects JSON: { qrToken, consentTextVersion }
       const consentVersion = eventInfo?.consentTextVersion || '1.0';
 
@@ -87,15 +87,15 @@ export default function ConsentPage() {
     setStep('submitting');
 
     try {
-      // Convert file to base64 for the JSON API — backend expects { imageData, contentType }
+      // Convert file to base64 for the JSON API â€” backend expects { imageData, contentType }
       const arrayBuffer = await selfieFile.arrayBuffer();
       const base64 = btoa(
         new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
       );
 
-      // Step 2: Upload selfie — FR-SELFIE-001
+      // Step 2: Upload selfie â€” FR-SELFIE-001
       // Uses guest auth: Authorization: Guest <guestToken>
-      const { data } = await api.raw.post('/api/guest/selfie', {
+      const { data } = await api.raw.post('/guest/selfie', {
         imageData: base64,
         contentType: selfieFile.type || 'image/jpeg',
       }, {
@@ -125,7 +125,7 @@ export default function ConsentPage() {
   if (step === 'done') {
     return (
       <div className="guest-success">
-        <div className="guest-success__icon">🎉</div>
+        <div className="guest-success__icon">ðŸŽ‰</div>
         <h2>You're all set!</h2>
         <p>Our AI is finding your photos. You'll be redirected to your gallery shortly.</p>
         <div className="guest-success__loading">
@@ -142,19 +142,19 @@ export default function ConsentPage() {
       {step === 'consent' && (
         <Card>
           <Card.Body>
-            <h2 className="guest-consent__title">👋 Welcome!</h2>
+            <h2 className="guest-consent__title">ðŸ‘‹ Welcome!</h2>
             <p className="guest-consent__desc">
               Enter your details and consent to facial recognition. Our AI will find all event photos you appear in.
             </p>
 
             {eventInfo?.consentText && (
               <div className="guest-consent__privacy">
-                🔒 {eventInfo.consentText}
+                ðŸ”’ {eventInfo.consentText}
               </div>
             )}
             {!eventInfo?.consentText && (
               <div className="guest-consent__privacy">
-                🔒 Your selfie is processed securely and never shared. You can request deletion anytime.
+                ðŸ”’ Your selfie is processed securely and never shared. You can request deletion anytime.
               </div>
             )}
 
@@ -170,7 +170,7 @@ export default function ConsentPage() {
                 <span>I consent to facial recognition processing for this event only</span>
               </label>
 
-              <Button type="submit" variant="primary" fullWidth size="lg" loading={loading}>Continue →</Button>
+              <Button type="submit" variant="primary" fullWidth size="lg" loading={loading}>Continue â†’</Button>
             </form>
           </Card.Body>
         </Card>
@@ -179,7 +179,7 @@ export default function ConsentPage() {
       {(step === 'selfie' || step === 'submitting') && (
         <Card>
           <Card.Body>
-            <h2 className="guest-consent__title">📸 Take a Selfie</h2>
+            <h2 className="guest-consent__title">ðŸ“¸ Take a Selfie</h2>
             <p className="guest-consent__desc">Upload a clear photo of your face. This helps our AI find you in event photos.</p>
 
             {selfiePreview ? (
@@ -191,7 +191,7 @@ export default function ConsentPage() {
               </div>
             ) : (
               <div className="selfie-upload" onClick={() => fileInputRef.current?.click()}>
-                <div className="selfie-upload__icon">🤳</div>
+                <div className="selfie-upload__icon">ðŸ¤³</div>
                 <p>Tap to upload your selfie</p>
               </div>
             )}
