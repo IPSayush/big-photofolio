@@ -2,7 +2,7 @@
 
 *This file is auto-loaded by coding agents (Claude Code, Cursor, etc.) at the
 start of every session in this project. It exists so these rules never have
-to be re-pasted into a new chat Ã¢â‚¬â€ the agent reads this file the same way it
+to be re-pasted into a new chat ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the agent reads this file the same way it
 reads any other file in the repo.*
 
 ---
@@ -12,15 +12,15 @@ reads any other file in the repo.*
 `docs/PRD.md` is the single source of truth for this project. Before doing
 any work in a new session, read it in full, along with the current state of
 the codebase under `packages/`, to establish what phase the project is
-actually at. Do not assume prior chat history exists Ã¢â‚¬â€ it does not persist
+actually at. Do not assume prior chat history exists ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it does not persist
 across sessions. This file and `docs/PRD.md` are what persist.
 
 ## Current Confirmed Stack (see PRD Section 1.1)
 
-MERN (MongoDB, Express, React, Node.js) Ã‚Â· Frontend + Backend API on Vercel Ã‚Â·
+MERN (MongoDB, Express, React, Node.js) Ãƒâ€šÃ‚Â· Frontend + Backend API on Vercel Ãƒâ€šÃ‚Â·
 Async workers (BullMQ + Redis) on a separate always-on service (not Vercel)
-Ã‚Â· MongoDB Atlas + Atlas Vector Search Ã‚Â· AWS S3 + CloudFront for storage/CDN
-Ã‚Â· Razorpay for payments.
+Ãƒâ€šÃ‚Â· MongoDB Atlas + Atlas Vector Search Ãƒâ€šÃ‚Â· AWS S3 + CloudFront for storage/CDN
+Ãƒâ€šÃ‚Â· Razorpay for payments.
 
 ## Phase Discipline
 
@@ -28,18 +28,18 @@ Async workers (BullMQ + Redis) on a separate always-on service (not Vercel)
   build gallery delivery before the upload/processing pipeline exists).
 - At the start of a session, state which phase the project is currently on
   and which phase you are about to work on, based on what's actually in the
-  repo Ã¢â‚¬â€ not on memory of a previous conversation.
+  repo ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â not on memory of a previous conversation.
 
 ## Documentation Stays in Sync
 
 After ANY meaningful change (new feature, schema change, API endpoint,
 security rule, or a resolved Open Decision), update `docs/PRD.md`
 accordingly, in the same session as the change:
-- Resolved Open Decision Ã¢â€ â€™ update Section 14 and Section 15 (mark it
+- Resolved Open Decision ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ update Section 14 and Section 15 (mark it
   Confirmed with its DEC ID).
-- Schema/entity change Ã¢â€ â€™ update Section 10 (Data Model).
-- New/changed API endpoint Ã¢â€ â€™ update Section 11.
-- Never leave `docs/PRD.md` stale Ã¢â‚¬â€ it is what every future session reads
+- Schema/entity change ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ update Section 10 (Data Model).
+- New/changed API endpoint ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ update Section 11.
+- Never leave `docs/PRD.md` stale ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it is what every future session reads
   instead of chat history.
 
 ## Requirement Traceability
@@ -51,8 +51,8 @@ accordingly, in the same session as the change:
 
 - Every endpoint or query touching tenant/event/guest data must enforce
   tenant-scoping server-side (`SEC-001`, `SEC-002`). Reuse existing
-  auth/tenant-scoping middleware Ã¢â‚¬â€ do not rewrite it per feature.
-- Never hardcode prices, quotas, or retention periods Ã¢â‚¬â€ read from
+  auth/tenant-scoping middleware ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â do not rewrite it per feature.
+- Never hardcode prices, quotas, or retention periods ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â read from
   Plan/RetentionPolicy config (`NFR-MAINT-001`).
 - No duplicate components/services/models; check for existing code before
   adding something new; no unrelated refactoring while implementing a
@@ -61,7 +61,7 @@ accordingly, in the same session as the change:
 ## Open Decisions & Assumptions
 
 If something in the PRD is marked "Open Decision" or "Assumption" and it
-blocks progress, **stop and ask** Ã¢â‚¬â€ do not guess, and do not silently pick a
+blocks progress, **stop and ask** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â do not guess, and do not silently pick a
 default without saying so. If you must pick a reasonable default to keep
 moving, say explicitly which default you picked and log it in PRD Section 15
 so it's visible to the next session.
@@ -73,8 +73,8 @@ so it's visible to the next session.
   downloading). Run the install/download once; if it's a large one-time
   download, say so once and continue with other independent work in
   parallel rather than waiting and re-checking repeatedly.
-- Give concise summaries at the end of a phase or task Ã¢â‚¬â€ what changed, what
-  tests pass, whether `docs/PRD.md` was updated Ã¢â‚¬â€ not a blow-by-blow of
+- Give concise summaries at the end of a phase or task ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â what changed, what
+  tests pass, whether `docs/PRD.md` was updated ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â not a blow-by-blow of
   every file touched.
 
 ## End of Phase Checklist
@@ -89,14 +89,14 @@ Before declaring a phase complete, confirm:
 
 ## Known Issues & Fixes Log
 
-### BUG-001: Blank Screen After Login on Production (Vercel) â€” Fixed 2026-09-25
+### BUG-001: Blank Screen After Login on Production (Vercel) Ã¢â‚¬â€ Fixed 2026-09-25
 
 **Symptoms:** Login at https://photofolio-official.vercel.app/login accepts credentials
 but redirects to a blank white screen. No error visible to user.
 
 **Root Causes (4 issues):**
 
-1. **CRITICAL â€” `connectDB()` never called in Vercel serverless entry point.**
+1. **CRITICAL Ã¢â‚¬â€ `connectDB()` never called in Vercel serverless entry point.**
    `api/index.js` exported the Express app without connecting to MongoDB. Every API
    call returned `FUNCTION_INVOCATION_FAILED` (500). Fixed by adding `await connectDB()`
    before delegating to Express.
@@ -114,16 +114,16 @@ but redirects to a blank white screen. No error visible to user.
    `ErrorBoundary` component wrapping `<App />`.
 
 **Files changed:**
-- `api/index.js` â€” added `connectDB()` call
-- `packages/server/src/config/db.js` â€” removed `process.exit(1)`, added warm-connection reuse
-- `packages/server/src/controllers/auth.controller.js` â€” added `tenant` to login response
-- `packages/client/src/components/common/ErrorBoundary.jsx` â€” new file
-- `packages/client/src/main.jsx` â€” wrapped App with ErrorBoundary
+- `api/index.js` Ã¢â‚¬â€ added `connectDB()` call
+- `packages/server/src/config/db.js` Ã¢â‚¬â€ removed `process.exit(1)`, added warm-connection reuse
+- `packages/server/src/controllers/auth.controller.js` Ã¢â‚¬â€ added `tenant` to login response
+- `packages/client/src/components/common/ErrorBoundary.jsx` Ã¢â‚¬â€ new file
+- `packages/client/src/main.jsx` Ã¢â‚¬â€ wrapped App with ErrorBoundary
 
 **Vercel env check (manual):** Ensure `CLIENT_URL=https://photofolio-official.vercel.app`
 is set in Vercel dashboard > Settings > Environment Variables.
 
-### BUG-002: Invalid Date on Event Dashboard — Fixed 2026-09-27
+### BUG-002: Invalid Date on Event Dashboard â€” Fixed 2026-09-27
 
 **Symptoms:** Event detail page showed "Invalid Date" for START and END fields.
 
@@ -137,7 +137,7 @@ Same mismatch existed in `guest.service.js` `getEventByQrToken()` which returned
 **Files:** `packages/client/src/pages/events/EventDetailPage.jsx`,
 `packages/server/src/services/guest.service.js`, `packages/client/src/pages/guest/GuestLandingPage.jsx`
 
-### BUG-003: QR-B Selfie Submit "QR token is required" — Fixed 2026-09-27
+### BUG-003: QR-B Selfie Submit "QR token is required" â€” Fixed 2026-09-27
 
 **Symptoms:** After uploading selfie on consent page (QR-B flow), clicking
 "Submit & Find My Photos" showed error "QR token is required."
@@ -145,15 +145,36 @@ Same mismatch existed in `guest.service.js` `getEventByQrToken()` which returned
 **Root Causes (3 issues):**
 
 1. **Frontend sent multipart/form-data** but Express has no multer middleware,
-   so `req.body` was empty/undefined → `qrToken` was undefined.
+   so `req.body` was empty/undefined â†’ `qrToken` was undefined.
 2. **Frontend combined consent + selfie** in one request, but backend requires
    two separate steps: `POST /api/guest/consent` (returns guestToken) then
    `POST /api/guest/selfie` (requires `Authorization: Guest <token>` header).
 3. **Frontend sent `consentGiven: 'true'`** but backend expects `consentTextVersion: '1.0'`.
 
 **Fix:** Rewrote `ConsentPage.jsx` to follow correct 2-step JSON flow:
-Step 1 (consent form submit) → `POST /api/guest/consent` with `{ qrToken, consentTextVersion }`
-Step 2 (selfie submit) → `POST /api/guest/selfie` with `{ imageData (base64), contentType }`
+Step 1 (consent form submit) â†’ `POST /api/guest/consent` with `{ qrToken, consentTextVersion }`
+Step 2 (selfie submit) â†’ `POST /api/guest/selfie` with `{ imageData (base64), contentType }`
 and `Authorization: Guest <token>` header.
 
 **Files:** `packages/client/src/pages/guest/ConsentPage.jsx`
+
+
+### BUG-004: Double /api/ Prefix in Selfie Upload — Fixed 2026-09-27
+
+**Symptoms:** QR-B selfie submit returned "Route POST /api/api/guest/selfie not found."
+
+**Root Cause:** `ConsentPage.jsx` used `api.raw.post('/api/guest/selfie', ...)` but
+`api.raw` is the axios instance with `baseURL: '/api'`, so the path doubled to
+`/api/api/guest/selfie`.
+
+**Fix:** Changed to `api.raw.post('/guest/selfie', ...)`.
+
+**Audit:** Grepped entire frontend codebase for hardcoded `'/api/'` in API call paths.
+This was the **only instance**. All other API calls use `api.get()`, `api.post()` etc.
+which use the wrapper methods (no `/api/` prefix needed since baseURL handles it).
+
+**Prevention rule:** When using `api.raw` (the raw axios instance) or `api.get/post`
+(the wrapper), NEVER include `/api/` prefix in the path. The baseURL `'/api'` is already
+configured. Paths should start with `/guest/...`, `/events/...`, `/auth/...` etc.
+
+**File:** `packages/client/src/pages/guest/ConsentPage.jsx`
