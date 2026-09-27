@@ -63,18 +63,28 @@ async function initiateEventDelete(tenantId, eventId, actor) {
   });
 
   // Enqueue async cascade delete job
-  const queue = getEventDeleteQueue();
-  await queue.add('cascade-delete', {
-    tenantId: tenantId.toString(),
-    eventId: eventId.toString(),
-    eventName: event.name,
-    actorUserId: actor.userId,
-  }, {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 5000 },
-    removeOnComplete: true,
-    removeOnFail: false, // Keep failed jobs for inspection
-  });
+  // Wrap in timeout — Vercel serverless has 30s limit, Redis connect may be slow
+  try {
+    const queue = getEventDeleteQueue();
+    await Promise.race([
+      queue.add('cascade-delete', {
+        tenantId: tenantId.toString(),
+        eventId: eventId.toString(),
+        eventName: event.name,
+        actorUserId: actor.userId,
+      }, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Queue timeout')), 10000)),
+    ]);
+  } catch (queueErr) {
+    // If queue fails, still respond — event is marked as deleting
+    // A scheduled cleanup job or manual retry can pick it up later
+    logger.warn({ err: queueErr, eventId }, 'Failed to enqueue delete job — event marked as deleting');
+  }
 
   logger.info({ tenantId, eventId, eventName: event.name }, 'Event delete initiated');
 
