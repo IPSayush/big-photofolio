@@ -19,6 +19,7 @@ const config = require('./config');
 const { connectDB, disconnectDB } = require('./db');
 const { processImage } = require('./processors/imageProcessor');
 const { processFaces } = require('./processors/faceProcessor');
+const { processEventDelete } = require('./processors/eventDeleteProcessor');
 
 // Determine if pino-pretty is available
 let pinoTransport = undefined;
@@ -38,6 +39,7 @@ const logger = pino({
 
 let worker = null;
 let faceWorker = null;
+let deleteWorker = null;
 
 /**
  * Parse Redis URL into host/port for BullMQ connection.
@@ -135,8 +137,40 @@ async function start() {
     logger.error({ err }, 'Face worker error');
   });
 
+  // FR-EVENT-007: Event cascade delete worker
+  deleteWorker = new Worker(
+    'event-delete',
+    async (job) => {
+      return processEventDelete(job);
+    },
+    {
+      connection: redisConnection,
+      concurrency: 1, // Sequential deletes to avoid overwhelming S3/DB
+      lockDuration: 600000, // 10 min lock (large events may take time)
+      stalledInterval: 300000,
+    }
+  );
+
+  deleteWorker.on('completed', (job, result) => {
+    logger.info(
+      { jobId: job.id, eventId: job.data.eventId, durationMs: result?.durationMs, summary: result },
+      'Event delete job completed'
+    );
+  });
+
+  deleteWorker.on('failed', (job, err) => {
+    logger.error(
+      { jobId: job?.id, eventId: job?.data?.eventId, error: err.message, attempts: job?.attemptsMade },
+      'Event delete job failed'
+    );
+  });
+
+  deleteWorker.on('error', (err) => {
+    logger.error({ err }, 'Event delete worker error');
+  });
+
   logger.info(
-    { concurrency: config.concurrency, queues: ['image-processing', 'face-processing'] },
+    { concurrency: config.concurrency, queues: ['image-processing', 'face-processing', 'event-delete'] },
     'Worker ready — listening for processing jobs'
   );
 }
@@ -155,6 +189,11 @@ async function shutdown(signal) {
   if (faceWorker) {
     await faceWorker.close();
     logger.info('Face processing worker closed');
+  }
+
+  if (deleteWorker) {
+    await deleteWorker.close();
+    logger.info('Event delete worker closed');
   }
 
   await disconnectDB();

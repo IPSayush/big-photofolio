@@ -7,7 +7,7 @@
  * In test mode, returns mock URLs to avoid AWS dependency in CI.
  */
 
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const env = require('../config/env');
 
@@ -107,9 +107,80 @@ async function generatePresignedGetUrl(bucket, key, expiresIn = 300) {
   return getSignedUrl(client, command, { expiresIn });
 }
 
+/**
+ * Batch delete S3 objects by key.
+ * FR-EVENT-007: Cascade delete event media from S3.
+ * Uses DeleteObjects API (max 1000 keys per call).
+ *
+ * @param {string} bucket - S3 bucket name.
+ * @param {string[]} keys - Array of S3 object keys to delete.
+ * @returns {Promise<number>} Number of objects deleted.
+ */
+async function batchDeleteObjects(bucket, keys) {
+  if (!keys || keys.length === 0) return 0;
+
+  if (env.nodeEnv === 'test') {
+    return keys.length; // Mock in test mode
+  }
+
+  const client = getS3Client();
+  let totalDeleted = 0;
+
+  // S3 DeleteObjects supports max 1000 keys per call
+  for (let i = 0; i < keys.length; i += 1000) {
+    const batch = keys.slice(i, i + 1000);
+    const command = new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: {
+        Objects: batch.map((key) => ({ Key: key })),
+        Quiet: true,
+      },
+    });
+
+    await client.send(command);
+    totalDeleted += batch.length;
+  }
+
+  return totalDeleted;
+}
+
+/**
+ * List all S3 objects under a prefix.
+ * FR-EVENT-007: Find all objects for an event to delete.
+ *
+ * @param {string} bucket - S3 bucket name.
+ * @param {string} prefix - S3 key prefix.
+ * @returns {Promise<string[]>} Array of S3 keys.
+ */
+async function listObjectsByPrefix(bucket, prefix) {
+  if (env.nodeEnv === 'test') return [];
+
+  const client = getS3Client();
+  const keys = [];
+  let continuationToken;
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    });
+
+    const response = await client.send(command);
+    if (response.Contents) {
+      keys.push(...response.Contents.map((obj) => obj.Key));
+    }
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return keys;
+}
+
 module.exports = {
   getS3Client,
   generatePresignedPutUrl,
   generatePresignedGetUrl,
   buildOriginalPhotoKey,
+  batchDeleteObjects,
+  listObjectsByPrefix,
 };

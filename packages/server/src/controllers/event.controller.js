@@ -6,6 +6,7 @@
  */
 
 const eventService = require('../services/event.service');
+const { initiateEventDelete } = require('../services/eventDelete.service');
 const { auditParamsFromReq } = require('../services/audit.service');
 
 /**
@@ -132,6 +133,29 @@ async function archiveEvent(req, res, next) {
   }
 }
 
+/**
+ * DELETE /api/events/:eventId
+ * FR-EVENT-007: Permanently delete event with cascade.
+ * Marks event as "deleting" and enqueues async cascade delete job.
+ */
+async function deleteEvent(req, res, next) {
+  try {
+    const result = await initiateEventDelete(
+      req.tenantId,
+      req.params.eventId,
+      auditParamsFromReq(req)
+    );
+
+    res.status(202).json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createEvent,
   listEvents,
@@ -139,4 +163,5 @@ module.exports = {
   updateEvent,
   regenerateQrCode,
   archiveEvent,
+  deleteEvent,
 };

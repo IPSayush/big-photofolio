@@ -26,6 +26,7 @@ const EVENT_STATUS = Object.freeze({
   ACTIVE: 'active',
   CLOSED: 'closed',       // FR-EVENT-005
   ARCHIVED: 'archived',   // FR-EVENT-005
+  DELETING: 'deleting',   // FR-EVENT-007 — async cascade delete in progress
 });
 
 /** Photo processing pipeline status — FR-PIPE-002 */

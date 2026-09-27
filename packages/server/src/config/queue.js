@@ -82,15 +82,18 @@ function getQueue(name) {
 const QUEUE_NAMES = Object.freeze({
   IMAGE_PROCESSING: 'image-processing',
   FACE_PROCESSING: 'face-processing',
+  EVENT_DELETE: 'event-delete',     // FR-EVENT-007: async cascade delete
 });
 
 function getImageProcessingQueue() { return getQueue(QUEUE_NAMES.IMAGE_PROCESSING); }
 function getFaceProcessingQueue() { return getQueue(QUEUE_NAMES.FACE_PROCESSING); }
+function getEventDeleteQueue() { return getQueue(QUEUE_NAMES.EVENT_DELETE); }
 
 module.exports = {
   getQueue,
   getImageProcessingQueue,
   getFaceProcessingQueue,
+  getEventDeleteQueue,
   MockQueue,
   QUEUE_NAMES,
 };

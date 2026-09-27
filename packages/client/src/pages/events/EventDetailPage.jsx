@@ -1,6 +1,7 @@
 /**
- * Event Detail Page — single event with QR codes, stats, and management.
+ * Event Detail Page - single event with QR codes, stats, and management.
  * FR-EVENT-006: Dashboard stats.
+ * FR-EVENT-007: Delete event with confirmation.
  */
 
 import { useState, useEffect } from 'react';
@@ -16,6 +17,12 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Delete confirmation state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
   useEffect(() => {
     api.get(`/events/${eventId}`)
       .then(({ data }) => setEvent(data.event))
@@ -23,10 +30,25 @@ export default function EventDetailPage() {
       .finally(() => setLoading(false));
   }, [eventId]);
 
+  const handleDelete = async () => {
+    if (deleteConfirmName !== event.name) return;
+    setDeleting(true);
+    setDeleteError('');
+
+    try {
+      await api.delete(`/events/${eventId}`);
+      navigate('/events');
+    } catch (err) {
+      setDeleteError(err.response?.data?.error || 'Delete failed.');
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="page-center"><Spinner size="lg" /></div>;
   if (!event) return null;
 
   const stats = event.stats || {};
+  const isDeleting = event.status === 'deleting';
 
   // Event model stores dates as event.date.start / event.date.end (nested object)
   const startDate = event.date?.start ? new Date(event.date.start).toLocaleString('en-IN') : 'Not set';
@@ -39,10 +61,16 @@ export default function EventDetailPage() {
           <Link to="/events" className="event-detail__back">← Back to Events</Link>
           <h1 className="page-title">{event.name}</h1>
         </div>
-        <Badge variant={event.status === 'active' ? 'success' : 'default'} className="event-detail__badge">
-          {event.status}
+        <Badge variant={event.status === 'active' ? 'success' : event.status === 'deleting' ? 'error' : 'default'} className="event-detail__badge">
+          {isDeleting ? 'Deleting...' : event.status}
         </Badge>
       </div>
+
+      {isDeleting && (
+        <div className="auth-card__error" style={{ marginBottom: 'var(--space-4)', textAlign: 'center', padding: 'var(--space-4)' }}>
+          ⚠️ This event is being permanently deleted. All data will be removed shortly.
+        </div>
+      )}
 
       {/* Event Info */}
       <div className="event-detail__info">
@@ -69,38 +97,95 @@ export default function EventDetailPage() {
       </div>
 
       {/* QR Codes */}
-      <div className="event-detail__qr-section">
-        <h2 className="section-title" style={{ marginTop: 'var(--space-6)' }}>QR Codes</h2>
-        <div className="qr-grid">
-          <Card>
-            <Card.Body>
-              <h3 className="qr-card__title">QR-A: Browse Gallery</h3>
-              <p className="qr-card__desc">Guests can browse the event's public gallery</p>
-              <div className="qr-card__token">
-                <code>{event.qrAToken}</code>
-              </div>
-              <p className="qr-card__url">{window.location.origin}/guest/events/{event.qrAToken}</p>
-            </Card.Body>
-          </Card>
-          <Card>
-            <Card.Body>
-              <h3 className="qr-card__title">QR-B: AI Face Matching</h3>
-              <p className="qr-card__desc">Guests consent and upload selfie for AI matching</p>
-              <div className="qr-card__token">
-                <code>{event.qrBToken}</code>
-              </div>
-              <p className="qr-card__url">{window.location.origin}/guest/consent/{event.qrBToken}</p>
-            </Card.Body>
-          </Card>
+      {!isDeleting && (
+        <div className="event-detail__qr-section">
+          <h2 className="section-title" style={{ marginTop: 'var(--space-6)' }}>QR Codes</h2>
+          <div className="qr-grid">
+            <Card>
+              <Card.Body>
+                <h3 className="qr-card__title">QR-A: Browse Gallery</h3>
+                <p className="qr-card__desc">Guests can browse the event's public gallery</p>
+                <div className="qr-card__token">
+                  <code>{event.qrAToken}</code>
+                </div>
+                <p className="qr-card__url">{window.location.origin}/guest/events/{event.qrAToken}</p>
+              </Card.Body>
+            </Card>
+            <Card>
+              <Card.Body>
+                <h3 className="qr-card__title">QR-B: AI Face Matching</h3>
+                <p className="qr-card__desc">Guests consent and upload selfie for AI matching</p>
+                <div className="qr-card__token">
+                  <code>{event.qrBToken}</code>
+                </div>
+                <p className="qr-card__url">{window.location.origin}/guest/consent/{event.qrBToken}</p>
+              </Card.Body>
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Actions */}
-      <div className="event-detail__actions">
-        <Link to={`/events/${eventId}/upload`}>
-          <Button variant="primary" size="lg">📷 Upload Photos</Button>
-        </Link>
-      </div>
+      {!isDeleting && (
+        <div className="event-detail__actions" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link to={`/events/${eventId}/upload`}>
+            <Button variant="primary" size="lg">📷 Upload Photos</Button>
+          </Link>
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => setShowDeleteModal(true)}
+            style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+          >
+            🗑️ Delete Event
+          </Button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={() => !deleting && setShowDeleteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title" style={{ color: 'var(--color-error)' }}>
+              ⚠️ Permanently Delete Event
+            </h2>
+            <p className="modal-desc">
+              This action is <strong>irreversible</strong>. The following will be permanently deleted:
+            </p>
+            <ul className="modal-list">
+              <li>📸 All {stats.photoCount || 0} photos (originals + derivatives)</li>
+              <li>👥 All {stats.guestCount || 0} guest records and consent data</li>
+              <li>🧬 All face detection data and matches</li>
+              <li>☁️ All files from cloud storage (S3)</li>
+            </ul>
+            <p className="modal-desc" style={{ marginTop: 'var(--space-4)' }}>
+              To confirm, type the event name: <strong>{event.name}</strong>
+            </p>
+            <input
+              type="text"
+              className="modal-confirm-input"
+              placeholder="Type event name to confirm"
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              disabled={deleting}
+              autoFocus
+            />
+            {deleteError && <div className="auth-card__error" style={{ marginTop: 'var(--space-3)' }}>{deleteError}</div>}
+            <div className="modal-actions">
+              <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={deleting}>Cancel</Button>
+              <Button
+                variant="primary"
+                onClick={handleDelete}
+                loading={deleting}
+                disabled={deleteConfirmName !== event.name || deleting}
+                style={{ backgroundColor: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+              >
+                🗑️ Delete Forever
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

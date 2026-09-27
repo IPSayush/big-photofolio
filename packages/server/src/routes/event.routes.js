@@ -66,4 +66,10 @@ router.post(
   eventController.archiveEvent
 );
 
+// FR-EVENT-007: Permanently delete event (cascade)
+router.delete(
+  '/:eventId',
+  eventController.deleteEvent
+);
+
 module.exports = router;
