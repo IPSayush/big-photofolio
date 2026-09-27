@@ -239,3 +239,29 @@ Shared:
 **Test result:** DELETE returns 202, event status confirmed as 'deleting'.
 Note: actual cascade deletion requires the BullMQ worker on Railway to be
 running. Without the worker, events stay in 'deleting' status indefinitely.
+
+
+### BUG-006: Railway Worker Build Fails "Cannot find module '/app/src/index.js'" — 2026-09-28
+
+**Symptoms:** Railway deployment of worker (packages/worker) fails at BUILD step:
+"Error: Cannot find module '/app/src/index.js'"
+
+**Root Cause:** Railway dashboard has a Custom Build Command set to "node src/index.js"
+which Railway tries to run FROM THE REPO ROOT during the build phase. The worker entry
+point is at packages/worker/src/index.js, not /src/index.js. The worker is a plain
+Node.js process — it needs NO build/compile step at all.
+
+**NOT a code bug:** No railway.json/railway.toml/nixpacks.toml/Procfile exists in the
+repo. The misconfigured build command is set ONLY in the Railway dashboard UI.
+
+**Code fix (defensive):** Added no-op "build" script to packages/worker/package.json:
+"build": "echo no build step required for worker"
+
+**Dashboard fix (user must do manually):**
+1. Railway Dashboard -> Worker Service -> Settings -> "Build" section
+2. Find "Custom Build Command" field
+3. CLEAR it completely (leave empty) or set to: echo 'no build required'
+4. Do NOT touch the Start Command — "npm run start" is correct
+5. Redeploy the service
+
+**File:** packages/worker/package.json

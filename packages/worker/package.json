@@ -5,6 +5,7 @@
   "description": "PhotoFolio async image processing worker (BullMQ)",
   "main": "src/index.js",
   "scripts": {
+    "build": "echo no build step required for worker",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "test": "vitest run"
