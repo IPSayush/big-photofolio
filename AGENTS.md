@@ -178,3 +178,30 @@ which use the wrapper methods (no `/api/` prefix needed since baseURL handles it
 configured. Paths should start with `/guest/...`, `/events/...`, `/auth/...` etc.
 
 **File:** `packages/client/src/pages/guest/ConsentPage.jsx`
+
+
+### BUG-005: QR-A Token on Consent Page Shows "Invalid QR code" + Emoji Encoding — Fixed 2026-09-28
+
+**Symptoms:** Visiting /guest/consent/<token> with a QR-A token showed the consent form
+but displayed "Invalid QR code." after clicking Continue. Also, all emojis on the page
+rendered as garbled text (e.g. "ÃÂ°ÃÂÃÂ'" instead of wave emoji).
+
+**Root Causes:**
+1. **QR-A token on consent page:** The consent page loaded event info via
+   `GET /guest/events/:token` which accepts both QR-A and QR-B tokens. But
+   `POST /guest/consent` only accepts QR-B tokens (`Event.findOne({ qrBToken })`).
+   So the page loaded fine but consent submission failed.
+2. **Emoji encoding:** ConsentPage was written via PowerShell `@'...'@` here-string
+   which double-encoded UTF-8 emoji characters.
+
+**Fix:**
+1. ConsentPage now checks `data.qrType` on load — if it's 'A', immediately redirects
+   to `/guest/events/:token` (the correct gallery landing page for QR-A tokens).
+2. Replaced literal emoji chars with `String.fromCodePoint()` calls for cross-platform safety.
+
+**Prevention rule:** When writing JSX files via PowerShell, use Node.js `fs.writeFileSync`
+instead of PowerShell `Set-Content` or `[System.IO.File]::WriteAllText` for any file
+containing non-ASCII characters (emojis, special symbols). PowerShell's string handling
+corrupts multi-byte UTF-8 sequences.
+
+**File:** `packages/client/src/pages/guest/ConsentPage.jsx`
