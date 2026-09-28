@@ -30,6 +30,30 @@ Async workers (BullMQ + Redis) on a separate always-on service (not Vercel)
   and which phase you are about to work on, based on what's actually in the
   repo ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â not on memory of a previous conversation.
 
+## Mongoose Model Safety (Standing Rule)
+
+Every Mongoose model file MUST use the guard pattern:
+```js
+module.exports = mongoose.models.ModelName || mongoose.model('ModelName', schema);
+```
+This prevents OverwriteModelError when the same model is required from
+multiple paths in the monorepo (e.g., worker loading server models).
+
+NEVER require() from packages/server/ inside packages/worker/ code.
+Worker has its own model copies under packages/worker/src/models/.
+For models that only exist in server (Guest, ConsentRecord, AuditLog),
+use `mongoose.models.ModelName` at runtime.
+
+## Railway Worker Deployment Config
+
+- **Build Command:** EMPTY / no-op (worker is plain Node.js, no compile)
+- **Start Command:** `npm run start --workspace=@photofolio/worker`
+- **Root Directory:** repo root (not packages/worker)
+- **Required env vars:** MONGODB_URI, REDIS_URL, AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_ORIGINALS,
+  S3_BUCKET_DERIVATIVES, NODE_ENV, FACE_MATCH_THRESHOLD (optional),
+  FACE_PROVIDER (optional, default: mock), WORKER_CONCURRENCY (optional)
+
 ## Documentation Stays in Sync
 
 After ANY meaningful change (new feature, schema change, API endpoint,
@@ -265,3 +289,23 @@ repo. The misconfigured build command is set ONLY in the Railway dashboard UI.
 5. Redeploy the service
 
 **File:** packages/worker/package.json
+
+
+### BUG-007: Worker OverwriteModelError Crash-Loop on Railway — Fixed 2026-09-28
+
+**Symptoms:** Worker starts, immediately crashes with:
+OverwriteModelError: Cannot overwrite `Event` model once compiled.
+
+**Root Cause:** `eventDeleteProcessor.js` required `packages/server/src/services/
+eventDelete.service.js` which loaded `packages/server/src/models/Event.js`.
+But the worker's own processors (imageProcessor, faceProcessor) already loaded
+`packages/worker/src/models/Event.js`. Two different files at different paths,
+both calling `mongoose.model('Event', schema)` -> OverwriteModelError.
+
+**Fix (2 parts):**
+1. All 20 Mongoose models (14 server + 6 worker) guarded with:
+   `module.exports = mongoose.models.X || mongoose.model('X', schema)`
+2. Rewrote `eventDeleteProcessor.js` to be self-contained — uses worker's own
+   models instead of reaching into `packages/server/` internals.
+
+**Files:** 21 files changed (all model files + eventDeleteProcessor.js)
