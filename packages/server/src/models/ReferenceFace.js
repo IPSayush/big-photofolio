@@ -79,4 +79,4 @@ referenceFaceSchema.index(
 // Event-level queries for incremental matching (FR-MATCH-003)
 referenceFaceSchema.index({ eventId: 1, deletedAt: 1 });
 
-module.exports = mongoose.model('ReferenceFace', referenceFaceSchema);
+module.exports = mongoose.models.ReferenceFace || mongoose.model('ReferenceFace', referenceFaceSchema);

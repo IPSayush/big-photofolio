@@ -121,4 +121,4 @@ const planSchema = new mongoose.Schema(
 // Index for listing active plans in order
 planSchema.index({ isActive: 1, sortOrder: 1 });
 
-module.exports = mongoose.model('Plan', planSchema);
+module.exports = mongoose.models.Plan || mongoose.model('Plan', planSchema);

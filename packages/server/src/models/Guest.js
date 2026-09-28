@@ -86,4 +86,4 @@ guestSchema.statics.generateSessionToken = function () {
   return { plainToken, hash };
 };
 
-module.exports = mongoose.model('Guest', guestSchema);
+module.exports = mongoose.models.Guest || mongoose.model('Guest', guestSchema);

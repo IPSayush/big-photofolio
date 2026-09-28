@@ -18,4 +18,4 @@ const matchSchema = new mongoose.Schema(
 
 matchSchema.index({ guestId: 1, photoId: 1, faceDetectionId: 1 }, { unique: true });
 
-module.exports = mongoose.model('Match', matchSchema);
+module.exports = mongoose.models.Match || mongoose.model('Match', matchSchema);

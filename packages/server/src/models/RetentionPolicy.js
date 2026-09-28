@@ -55,4 +55,4 @@ const retentionPolicySchema = new mongoose.Schema(
 // One policy per tenant
 retentionPolicySchema.index({ tenantId: 1 }, { unique: true });
 
-module.exports = mongoose.model('RetentionPolicy', retentionPolicySchema);
+module.exports = mongoose.models.RetentionPolicy || mongoose.model('RetentionPolicy', retentionPolicySchema);

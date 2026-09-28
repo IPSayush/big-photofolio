@@ -68,4 +68,4 @@ matchSchema.index({ guestId: 1, eventId: 1, confidenceScore: -1 });
 // Event-level match stats for photographer dashboard
 matchSchema.index({ eventId: 1 });
 
-module.exports = mongoose.model('Match', matchSchema);
+module.exports = mongoose.models.Match || mongoose.model('Match', matchSchema);

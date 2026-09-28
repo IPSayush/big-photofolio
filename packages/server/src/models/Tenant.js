@@ -64,4 +64,4 @@ const tenantSchema = new mongoose.Schema(
 // Index for admin queries — FR-MON-002
 tenantSchema.index({ status: 1, createdAt: -1 });
 
-module.exports = mongoose.model('Tenant', tenantSchema);
+module.exports = mongoose.models.Tenant || mongoose.model('Tenant', tenantSchema);

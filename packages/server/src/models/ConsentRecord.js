@@ -58,4 +58,4 @@ const consentRecordSchema = new mongoose.Schema(
 // Lookup by guest + event
 consentRecordSchema.index({ guestId: 1, eventId: 1 });
 
-module.exports = mongoose.model('ConsentRecord', consentRecordSchema);
+module.exports = mongoose.models.ConsentRecord || mongoose.model('ConsentRecord', consentRecordSchema);

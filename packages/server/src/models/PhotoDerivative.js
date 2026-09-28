@@ -74,4 +74,4 @@ photoDerivativeSchema.index({ photoId: 1, type: 1 }, { unique: true });
 // Event-level derivative queries
 photoDerivativeSchema.index({ eventId: 1, type: 1 });
 
-module.exports = mongoose.model('PhotoDerivative', photoDerivativeSchema);
+module.exports = mongoose.models.PhotoDerivative || mongoose.model('PhotoDerivative', photoDerivativeSchema);

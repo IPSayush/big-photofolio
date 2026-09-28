@@ -116,4 +116,4 @@ eventSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 // Expose the token generator for service-layer QR regeneration (FR-EVENT-003)
 eventSchema.statics.generateQrToken = generateQrToken;
 
-module.exports = mongoose.model('Event', eventSchema);
+module.exports = mongoose.models.Event || mongoose.model('Event', eventSchema);

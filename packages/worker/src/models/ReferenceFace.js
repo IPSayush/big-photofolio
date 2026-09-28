@@ -20,4 +20,4 @@ const referenceFaceSchema = new mongoose.Schema(
 
 referenceFaceSchema.index({ eventId: 1, deletedAt: 1 });
 
-module.exports = mongoose.model('ReferenceFace', referenceFaceSchema);
+module.exports = mongoose.models.ReferenceFace || mongoose.model('ReferenceFace', referenceFaceSchema);

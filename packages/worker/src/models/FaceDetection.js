@@ -26,4 +26,4 @@ const faceDetectionSchema = new mongoose.Schema(
 
 faceDetectionSchema.index({ eventId: 1, photoId: 1 });
 
-module.exports = mongoose.model('FaceDetection', faceDetectionSchema);
+module.exports = mongoose.models.FaceDetection || mongoose.model('FaceDetection', faceDetectionSchema);

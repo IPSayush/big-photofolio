@@ -103,4 +103,4 @@ faceDetectionSchema.index({ tenantId: 1, eventId: 1 });
  * }
  */
 
-module.exports = mongoose.model('FaceDetection', faceDetectionSchema);
+module.exports = mongoose.models.FaceDetection || mongoose.model('FaceDetection', faceDetectionSchema);

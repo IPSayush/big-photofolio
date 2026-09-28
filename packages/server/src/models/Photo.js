@@ -92,4 +92,4 @@ photoSchema.index({ eventId: 1, hash: 1 });
 // Batch-level queries for upload resumability (FR-UPLOAD-003)
 photoSchema.index({ uploadBatchId: 1, uploadConfirmed: 1 });
 
-module.exports = mongoose.model('Photo', photoSchema);
+module.exports = mongoose.models.Photo || mongoose.model('Photo', photoSchema);
