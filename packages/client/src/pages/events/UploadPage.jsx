@@ -96,11 +96,15 @@ export default function UploadPage() {
         ));
 
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 2min per file
           await fetch(uploadUrl, {
             method: 'PUT',
             headers: { 'Content-Type': files[i].file.type },
             body: files[i].file,
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
 
           setFiles((prev) => prev.map((f, idx) =>
             idx === i ? { ...f, status: 'done', progress: 100 } : f
@@ -114,10 +118,15 @@ export default function UploadPage() {
 
       // 4. Confirm upload for successfully uploaded photos
       if (photoIds.length > 0) {
-        await api.post(`/events/${eventId}/photos/confirm`, { photoIds });
+        try {
+          await api.post(`/events/${eventId}/photos/confirm`, { photoIds });
+        } catch (confirmErr) {
+          console.warn('Confirm step failed but photos were uploaded:', confirmErr);
+          // Photos are already in S3, confirm can be retried
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Upload failed.');
+      setError(err.response?.data?.error || 'Upload failed. Some photos may have been uploaded successfully.');
     } finally {
       setUploading(false);
     }

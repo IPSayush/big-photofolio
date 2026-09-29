@@ -13,34 +13,13 @@
 .app-layout__main {
   flex: 1;
   padding: var(--space-4);
-  padding-top: calc(var(--space-4) + 60px);
+  padding-top: calc(56px + var(--space-4));
   min-height: 100vh;
   overflow-x: hidden;
   padding-bottom: calc(var(--mobile-bottom-nav-h) + var(--space-4));
 }
 
-.app-layout__menu-toggle {
-  position: fixed;
-  top: var(--space-3);
-  left: var(--space-3);
-  z-index: calc(var(--z-sticky) + 10);
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  font-size: var(--font-size-xl);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-}
-.app-layout__menu-toggle:hover {
-  background: var(--color-surface);
-  border-color: var(--color-primary-light);
-}
+/* Old menu toggle removed - now using app-header hamburger */
 
 /* === Sidebar === */
 .sidebar {
@@ -257,15 +236,23 @@
 
 /* === Desktop (768px+) === */
 @media (min-width: 768px) {
-  .app-layout__menu-toggle {
-    display: none;
-  }
-
   .app-layout__main {
     margin-left: var(--sidebar-width);
     padding: var(--space-8);
-    padding-top: var(--space-8);
+    padding-top: calc(56px + var(--space-8));
     padding-bottom: var(--space-8);
+  }
+
+  .app-header {
+    left: var(--sidebar-width);
+  }
+
+  .app-header__hamburger {
+    display: none;
+  }
+
+  .app-header__brand {
+    display: none;
   }
 
   .sidebar {
@@ -284,4 +271,130 @@
   .guest-layout__main {
     padding: var(--space-8) var(--space-6);
   }
+}
+
+
+/* === Top Header Bar (always visible) === */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  z-index: calc(var(--z-sticky) + 5);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-header__hamburger {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+}
+.app-header__hamburger:hover {
+  background: var(--color-surface);
+}
+
+.app-header__brand {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+.app-header__brand-accent {
+  color: var(--color-primary);
+}
+
+.app-header__right {
+  position: relative;
+}
+
+.app-header__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  border: 2px solid transparent;
+}
+.app-header__avatar:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.15);
+}
+
+/* === User Dropdown === */
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.15s ease;
+  z-index: var(--z-dropdown);
+  overflow: hidden;
+}
+
+.user-dropdown__info {
+  padding: var(--space-4);
+}
+
+.user-dropdown__name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.user-dropdown__tenant {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.user-dropdown__divider {
+  height: 1px;
+  background: var(--color-border);
+}
+
+.user-dropdown__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+.user-dropdown__item:hover {
+  background: var(--color-surface);
+}
+
+.user-dropdown__logout {
+  color: var(--color-error);
+}
+.user-dropdown__logout:hover {
+  background: rgba(196, 91, 82, 0.06);
 }

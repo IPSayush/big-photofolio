@@ -309,3 +309,23 @@ both calling `mongoose.model('Event', schema)` -> OverwriteModelError.
    models instead of reaching into `packages/server/` internals.
 
 **Files:** 21 files changed (all model files + eventDeleteProcessor.js)
+
+
+### BUG-008: Upload Timeout — Fixed 2026-09-29
+
+**Symptoms:** Photo upload shows "upload failed" but photos actually appear in dashboard.
+**Root Cause:** API client 30s timeout too short for large photo S3 uploads.
+**Fix:** Timeout increased to 60s (API) + 120s per file (S3 direct).
+**Files:** client/src/api/client.js, client/src/pages/events/UploadPage.jsx
+
+### BUG-009: QR-A "Get My Photos" Redirect Loop — Fixed 2026-09-29
+
+**Symptoms:** "Get My Photos" on QR-A landing page doesn't navigate.
+**Root Cause:** GuestLandingPage linked to consent page, which detected QR-A and redirected back.
+**Fix:** GuestLandingPage now checks qrType: A shows gallery directly, B shows consent link.
+**File:** client/src/pages/guest/GuestLandingPage.jsx
+
+### UI-001: Warm Cream Theme + Mobile-First Responsive — Applied 2026-09-29
+
+**What changed:** Complete frontend theme overhaul from dark purple/teal to warm white-cream (#FDFBF7 bg, #C9A96E gold accent). Added mobile bottom nav, persistent header with user dropdown, responsive breakpoints.
+**Files:** 10+ CSS/JSX files in packages/client/src/

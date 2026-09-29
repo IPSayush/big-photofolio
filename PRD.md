@@ -969,3 +969,29 @@ DELETE /events/:eventId → Mark status='deleting' → Enqueue BullMQ 'event-del
 | Analytics | ❌ Not started | Phase 2 |
 | Email Notifications | ❌ Not started | Phase 2 |
 
+
+
+## A.8 Bug Fixes & Performance Improvements (2026-09-29)
+
+### BUG-008: Upload Shows "Failed" but Photos Actually Upload
+**Symptom:** Uploading photos to an event takes too long and shows "upload failed", but photos appear in the dashboard.
+**Root Cause:** API client had a 30s default timeout. S3 presigned URL uploads of large photos (5-15MB) can take 30-60s on slower connections.
+**Fix:**
+1. Increased API client default timeout from 30s to 60s
+2. Added per-file AbortController with 120s (2min) timeout for S3 uploads
+3. Made the "confirm" step fail gracefully — if confirm fails, photos are still in S3 and dashboard shows them
+**Files:** `packages/client/src/api/client.js`, `packages/client/src/pages/events/UploadPage.jsx`
+
+### BUG-009: QR-A "Get My Photos" Button Doesn't Work
+**Symptom:** On the QR-A URL (public event), clicking "Get My Photos" doesn't work.
+**Root Cause:** GuestLandingPage always linked to `/guest/consent/:token`, but ConsentPage checks if token is QR-A and redirects back to landing page — creating a redirect loop. QR-A events are public and don't need consent.
+**Fix:** Rewrote GuestLandingPage to detect `qrType` from server response:
+- QR-A: Shows "Event Gallery" with photo grid directly (no consent link)
+- QR-B: Shows "Get My Photos" button linking to consent page
+**File:** `packages/client/src/pages/guest/GuestLandingPage.jsx`
+
+### PERF-001: Slow UI Performance
+**Improvements:**
+- API timeout increased to 60s (prevents premature failure on slow connections)
+- Upload uses per-file timeout (2min) instead of global timeout
+- GuestLandingPage loads photos asynchronously (doesn't block initial render)

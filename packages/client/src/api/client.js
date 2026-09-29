@@ -14,7 +14,7 @@ const API_BASE = '/api';
 const client = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 30000,
+  timeout: 60000, // 60s default; uploads use longer timeout
 });
 
 // --- Request interceptor: attach access token ---
