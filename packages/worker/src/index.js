@@ -1,5 +1,5 @@
-/**
- * Worker Entry Point — BullMQ queue consumers.
+﻿/**
+ * Worker Entry Point - BullMQ queue consumers.
  * FR-PIPE-001: All AI/image processing runs asynchronously via queue/worker.
  * NFR-SCALE-001: Workers scale horizontally independent of the web tier.
  *
@@ -10,7 +10,7 @@
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load env from project root
+// Load env from project root (does NOT override existing env vars)
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const { Worker } = require('bullmq');
@@ -43,21 +43,32 @@ let deleteWorker = null;
 
 /**
  * Parse Redis URL into host/port for BullMQ connection.
+ * FIX: Added family:4 to force IPv4 (prevents ECONNREFUSED ::1:6379 on Railway).
+ * FIX: Auto-detect TLS for Upstash and other cloud Redis providers.
  */
 function parseRedisUrl(url) {
   try {
     const parsed = new URL(url);
+    const host = parsed.hostname || 'localhost';
     const opts = {
-      host: parsed.hostname || 'localhost',
+      host,
       port: parseInt(parsed.port, 10) || 6379,
       maxRetriesPerRequest: null, // Required by BullMQ
+      family: 4, // Force IPv4 - prevents ::1 (IPv6 localhost) resolution on Railway/containers
     };
     if (parsed.password) opts.password = decodeURIComponent(parsed.password);
     if (parsed.username && parsed.username !== 'default') opts.username = parsed.username;
-    if (parsed.protocol === 'rediss:') opts.tls = {};
+
+    // Enable TLS if protocol is rediss:// OR if host is a known cloud Redis provider
+    const isCloudRedis = host.includes('upstash.io') || host.includes('redis.cloud') || host.includes('redislabs.com');
+    if (parsed.protocol === 'rediss:' || isCloudRedis) {
+      opts.tls = {};
+    }
+
     return opts;
-  } catch {
-    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null };
+  } catch (err) {
+    console.error('Failed to parse Redis URL:', err.message);
+    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null, family: 4 };
   }
 }
 
@@ -65,13 +76,27 @@ function parseRedisUrl(url) {
  * Start the worker.
  */
 async function start() {
-  logger.info('PhotoFolio Worker starting...');
+  // === DEBUG: Log Redis URL resolution so we can verify in Railway deploy logs ===
+  const rawRedisUrl = process.env.REDIS_URL;
+  logger.info({
+    REDIS_URL_SET: !!rawRedisUrl,
+    REDIS_URL_SOURCE: rawRedisUrl ? 'environment' : 'fallback (localhost)',
+    REDIS_URL_HOST: rawRedisUrl ? (() => { try { return new URL(rawRedisUrl).hostname; } catch { return 'parse-error'; } })() : 'localhost',
+    NODE_ENV: process.env.NODE_ENV,
+  }, 'PhotoFolio Worker starting - Redis config debug');
 
   // Connect to MongoDB
   await connectDB(config.mongodbUri);
 
-  // Create BullMQ Worker — FR-PIPE-001
+  // Create BullMQ Worker - FR-PIPE-001
   const redisConnection = parseRedisUrl(config.redisUrl);
+  logger.info({
+    redisHost: redisConnection.host,
+    redisPort: redisConnection.port,
+    redisTLS: !!redisConnection.tls,
+    redisFamily: redisConnection.family,
+    redisHasPassword: !!redisConnection.password,
+  }, 'Redis connection config resolved');
 
   worker = new Worker(
     'image-processing',
@@ -81,8 +106,7 @@ async function start() {
     {
       connection: redisConnection,
       concurrency: config.concurrency,
-      // NFR-REL-001: Stalled jobs are retried
-      lockDuration: 120000, // 2 min lock per job
+      lockDuration: 120000,
       stalledInterval: 60000,
     }
   );
@@ -105,7 +129,6 @@ async function start() {
     logger.error({ err }, 'Image worker error');
   });
 
-  // Create BullMQ Worker for face processing — FR-PIPE-002 (face stages)
   faceWorker = new Worker(
     'face-processing',
     async (job) => {
@@ -114,7 +137,7 @@ async function start() {
     {
       connection: redisConnection,
       concurrency: config.concurrency,
-      lockDuration: 180000, // 3 min lock (face processing may take longer)
+      lockDuration: 180000,
       stalledInterval: 90000,
     }
   );
@@ -137,7 +160,6 @@ async function start() {
     logger.error({ err }, 'Face worker error');
   });
 
-  // FR-EVENT-007: Event cascade delete worker
   deleteWorker = new Worker(
     'event-delete',
     async (job) => {
@@ -145,8 +167,8 @@ async function start() {
     },
     {
       connection: redisConnection,
-      concurrency: 1, // Sequential deletes to avoid overwhelming S3/DB
-      lockDuration: 600000, // 10 min lock (large events may take time)
+      concurrency: 1,
+      lockDuration: 600000,
       stalledInterval: 300000,
     }
   );
@@ -171,45 +193,23 @@ async function start() {
 
   logger.info(
     { concurrency: config.concurrency, queues: ['image-processing', 'face-processing', 'event-delete'] },
-    'Worker ready — listening for processing jobs'
+    'Worker ready - listening for processing jobs'
   );
 }
 
-/**
- * Graceful shutdown.
- */
 async function shutdown(signal) {
   logger.info({ signal }, 'Worker shutting down...');
-
-  if (worker) {
-    await worker.close();
-    logger.info('Image processing worker closed');
-  }
-
-  if (faceWorker) {
-    await faceWorker.close();
-    logger.info('Face processing worker closed');
-  }
-
-  if (deleteWorker) {
-    await deleteWorker.close();
-    logger.info('Event delete worker closed');
-  }
-
+  if (worker) { await worker.close(); logger.info('Image processing worker closed'); }
+  if (faceWorker) { await faceWorker.close(); logger.info('Face processing worker closed'); }
+  if (deleteWorker) { await deleteWorker.close(); logger.info('Event delete worker closed'); }
   await disconnectDB();
   process.exit(0);
 }
 
-// Graceful shutdown handlers
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('unhandledRejection', (err) => { logger.error({ err }, 'Unhandled rejection'); });
 
-// Unhandled errors
-process.on('unhandledRejection', (err) => {
-  logger.error({ err }, 'Unhandled rejection');
-});
-
-// Start
 start().catch((err) => {
   logger.fatal({ err }, 'Worker failed to start');
   process.exit(1);
