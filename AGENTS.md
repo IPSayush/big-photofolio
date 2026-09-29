@@ -329,3 +329,35 @@ both calling `mongoose.model('Event', schema)` -> OverwriteModelError.
 
 **What changed:** Complete frontend theme overhaul from dark purple/teal to warm white-cream (#FDFBF7 bg, #C9A96E gold accent). Added mobile bottom nav, persistent header with user dropdown, responsive breakpoints.
 **Files:** 10+ CSS/JSX files in packages/client/src/
+
+
+### BUG-010: QR-A Gallery Not Showing Photos — Fixed 2026-09-29
+
+**Symptoms:** QR-A event URL shows "This event has 4 photos" but no images displayed.
+
+**Root Causes (2 issues):**
+1. Frontend called wrong endpoint: `/guest/events/:token/photos` (doesn't exist) 
+   instead of `/guest/events/:token/gallery` (the actual endpoint).
+2. Gallery endpoint returns only photos with `status: PROCESSED`. If the worker
+   (packages/worker) is not running, photos stay as `status: uploaded` and never
+   appear in the gallery. The worker must be running on Railway to process images.
+
+**Fix:** 
+1. GuestLandingPage.jsx now calls correct endpoint: `/api/guest/events/:token/gallery`
+2. Added "Photos Processing" notice when photos are uploaded but not yet processed
+3. Added "Refresh Gallery" button for users to check back
+4. Shows photo grid with signed derivative URLs from S3
+
+**Note on "2 Guests":** This counter tracks how many Guest records were created via
+the consent flow (QR-B). It does NOT mean "2 people have access" — for public events,
+anyone with the QR-A URL can view all photos without authentication.
+
+**File:** packages/client/src/pages/guest/GuestLandingPage.jsx
+
+**Important:** Photos will NOT appear in the gallery until the BullMQ worker
+processes them. The worker:
+1. Runs on Railway (packages/worker)
+2. Needs REDIS_URL and MONGODB_URI environment variables
+3. Resizes photos into thumbnails + web derivatives
+4. Updates photo status from 'uploaded' to 'processed'
+Without the worker running, photos stay permanently in 'uploaded' status.
