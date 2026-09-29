@@ -1,26 +1,28 @@
 /*
  * Layout Styles — AppLayout + GuestLayout
+ * Warm Cream Theme | Mobile-first responsive
  */
 
-/* ─── App Layout ─── */
+/* === App Layout === */
 .app-layout {
   display: flex;
   min-height: 100vh;
+  background: var(--color-bg);
 }
 
 .app-layout__main {
   flex: 1;
-  margin-left: 260px;
-  padding: var(--space-8);
+  padding: var(--space-4);
+  padding-top: calc(var(--space-4) + 60px);
   min-height: 100vh;
   overflow-x: hidden;
+  padding-bottom: calc(var(--mobile-bottom-nav-h) + var(--space-4));
 }
 
 .app-layout__menu-toggle {
-  display: none;
   position: fixed;
-  top: var(--space-4);
-  left: var(--space-4);
+  top: var(--space-3);
+  left: var(--space-3);
   z-index: calc(var(--z-sticky) + 10);
   width: 44px;
   height: 44px;
@@ -29,36 +31,50 @@
   border: 1px solid var(--color-border);
   color: var(--color-text);
   font-size: var(--font-size-xl);
+  display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+.app-layout__menu-toggle:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary-light);
 }
 
-/* ─── Sidebar ─── */
+/* === Sidebar === */
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 260px;
+  width: var(--sidebar-width);
   background: var(--color-bg-elevated);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   z-index: var(--z-sticky);
   transition: transform var(--transition-base);
+  transform: translateX(-100%);
+  box-shadow: var(--shadow-lg);
+}
+
+.sidebar--open {
+  transform: translateX(0);
 }
 
 .sidebar__brand {
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border);
 }
 
 .sidebar__logo {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--color-text);
+}
+.sidebar__logo-accent {
+  color: var(--color-primary);
 }
 
 .sidebar__nav {
@@ -85,12 +101,13 @@
 
 .sidebar__link:hover {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(201, 169, 110, 0.06);
 }
 
 .sidebar__link.active {
-  color: var(--color-primary-light);
-  background: rgba(108, 92, 231, 0.1);
+  color: var(--color-primary-dark);
+  background: rgba(201, 169, 110, 0.1);
+  border-left: 3px solid var(--color-primary);
 }
 
 .sidebar__link-icon {
@@ -100,7 +117,7 @@
 }
 
 .sidebar__footer {
-  padding: var(--space-4) var(--space-4);
+  padding: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
@@ -115,7 +132,7 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -128,6 +145,7 @@
 .sidebar__user-name {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
 }
 
 .sidebar__user-tenant {
@@ -146,37 +164,84 @@
 }
 .sidebar__logout:hover {
   color: var(--color-error);
-  background: rgba(225, 112, 85, 0.1);
+  background: rgba(196, 91, 82, 0.08);
 }
 
 .sidebar-overlay {
   display: none;
 }
+.sidebar-overlay--visible {
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 42, 38, 0.35);
+  backdrop-filter: blur(2px);
+  z-index: calc(var(--z-sticky) - 1);
+  animation: fadeIn 0.2s ease;
+}
 
-/* ─── Guest Layout ─── */
+/* === Mobile Bottom Navigation === */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--mobile-bottom-nav-h);
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: var(--z-sticky);
+  box-shadow: 0 -2px 10px rgba(45, 42, 38, 0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.bottom-nav__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  min-width: 60px;
+}
+.bottom-nav__link.active {
+  color: var(--color-primary-dark);
+}
+.bottom-nav__link-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* === Guest Layout === */
 .guest-layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--color-bg);
 }
 
 .guest-layout__header {
   padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--color-border);
   text-align: center;
+  background: var(--color-bg-elevated);
 }
 
 .guest-layout__logo {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--color-text);
 }
 
 .guest-layout__main {
   flex: 1;
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-4);
   max-width: 600px;
   margin: 0 auto;
   width: 100%;
@@ -190,31 +255,33 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* ─── Responsive ─── */
-@media (max-width: 768px) {
+/* === Desktop (768px+) === */
+@media (min-width: 768px) {
   .app-layout__menu-toggle {
-    display: flex;
+    display: none;
   }
 
   .app-layout__main {
-    margin-left: 0;
-    padding: var(--space-4);
-    padding-top: calc(var(--space-4) + 60px);
+    margin-left: var(--sidebar-width);
+    padding: var(--space-8);
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
   }
 
   .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .sidebar--open {
     transform: translateX(0);
+    box-shadow: var(--shadow-sm);
   }
 
-  .sidebar-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: calc(var(--z-sticky) - 1);
+  .sidebar-overlay--visible {
+    display: none;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .guest-layout__main {
+    padding: var(--space-8) var(--space-6);
   }
 }

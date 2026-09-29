@@ -75,8 +75,8 @@
 
 .guest-consent__privacy {
   padding: var(--space-3) var(--space-4);
-  background: rgba(0, 206, 201, 0.08);
-  border: 1px solid rgba(0, 206, 201, 0.2);
+  background: rgba(139, 126, 106, 0.08);
+  border: 1px solid rgba(139, 126, 106, 0.2);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   color: var(--color-secondary);
@@ -114,7 +114,7 @@
 }
 .selfie-upload:hover {
   border-color: var(--color-primary);
-  background: rgba(108, 92, 231, 0.05);
+  background: rgba(201, 169, 110, 0.05);
 }
 .selfie-upload__icon { font-size: 3rem; margin-bottom: var(--space-3); }
 .selfie-upload p { color: var(--color-text-muted); }

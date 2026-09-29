@@ -10,7 +10,7 @@ export default function GuestLayout() {
   return (
     <div className="guest-layout">
       <header className="guest-layout__header">
-        <h1 className="guest-layout__logo">📸 PhotoFolio</h1>
+        <h1 className="guest-layout__logo">Photo<span style={{color: "var(--color-primary)"}}>Folio</span></h1>
       </header>
       <main className="guest-layout__main">
         <Outlet />

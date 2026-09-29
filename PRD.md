@@ -616,3 +616,356 @@ This PRD has been reviewed against the source prompt's 45-point completeness che
 **Note on stack revision:** This document was revised post-draft to confirm the technology stack as MERN (MongoDB/Express/React/Node.js), with frontend and backend hosted on Vercel, object storage on AWS S3, and Razorpay as the payment provider (see Section 1.1 and DEC-006). All prior illustrative references elsewhere in this document to PostgreSQL, pgvector, Next.js/SSR, Stripe, or AWS ECS/SQS as *examples* are superseded by Section 1.1; functional/security/privacy requirements (FR-\*, SEC-\*, PRIV-\*) are unaffected, as they were written stack-agnostic by design.
 
 **Note on completeness:** Given the extraordinary breadth requested by the source prompt (82 sections, full exhaustive detail across every domain), this document delivers a complete, internally consistent, implementation-ready **first full draft** covering every required topic area with representative depth (requirement tables, workflows, data model, security/privacy, gap analysis, risks, roadmap, backlog, and traceability). Sections such as the database schema, full API reference, and permissions matrix are provided at a summary/representative level suitable for architecture sign-off; a follow-up detailed technical specification pass (using this PRD's requirement IDs as anchors) is the recommended next step before final engineering handoff — this is itself logged as **Future Consideration / Open Decision: "Detailed technical spec pass."**
+
+
+---
+
+# APPENDIX A — Complete Project Reference (Single Source of Truth)
+
+> **Purpose:** This appendix contains everything an AI coding agent needs to understand the entire project without scanning code files. Read this appendix FIRST before making any changes.
+
+## A.1 Monorepo Structure
+
+```
+big-photofolio/
+├── api/
+│   └── index.js                  # Vercel serverless entry — imports Express app
+├── packages/
+│   ├── client/                   # React 19 + Vite frontend
+│   │   ├── index.html            # SPA entry, Google Fonts (Inter + Playfair Display)
+│   │   ├── src/
+│   │   │   ├── App.jsx           # Route tree (auth, photographer, guest, admin)
+│   │   │   ├── main.jsx          # React DOM mount
+│   │   │   ├── index.css         # Global design tokens (warm cream theme)
+│   │   │   ├── api/client.js     # Axios instance, baseURL='/api', interceptors
+│   │   │   ├── context/AuthContext.jsx  # Auth state provider (JWT access+refresh)
+│   │   │   ├── hooks/useAuth.js  # Custom hook for auth context
+│   │   │   ├── components/
+│   │   │   │   ├── common/       # Button, Input, Badge, Spinner, ErrorBoundary, ProtectedRoute
+│   │   │   │   │   ├── common.css        # Reusable component styles
+│   │   │   │   │   ├── index.jsx         # Named exports for all common components
+│   │   │   │   │   ├── ErrorBoundary.jsx # React error boundary wrapper
+│   │   │   │   │   └── ProtectedRoute.jsx # Auth guard, redirects to /login
+│   │   │   │   └── layout/
+│   │   │   │       ├── AppLayout.jsx     # Authenticated shell: sidebar + bottom nav + content
+│   │   │   │       ├── GuestLayout.jsx   # Guest shell: header + content + footer
+│   │   │   │       └── layout.css        # Sidebar, bottom nav, responsive styles
+│   │   │   └── pages/
+│   │   │       ├── auth/
+│   │   │       │   ├── LoginPage.jsx     # Email + password login
+│   │   │       │   ├── RegisterPage.jsx  # Business registration (firstName, lastName, email, password, businessName)
+│   │   │       │   └── auth.css
+│   │   │       ├── dashboard/
+│   │   │       │   ├── DashboardPage.jsx # Stats cards (events, photos, guests, storage)
+│   │   │       │   └── dashboard.css
+│   │   │       ├── events/
+│   │   │       │   ├── EventListPage.jsx   # Event cards grid with status badges
+│   │   │       │   ├── CreateEventPage.jsx # Event creation form (title, dates, location, access mode)
+│   │   │       │   ├── EventDetailPage.jsx # Event info, QR codes, photo management, delete
+│   │   │       │   ├── UploadPage.jsx      # Drag-drop photo upload with progress
+│   │   │       │   └── events.css
+│   │   │       ├── guest/
+│   │   │       │   ├── GuestLandingPage.jsx # QR-A landing — event info + gallery link
+│   │   │       │   ├── ConsentPage.jsx      # QR-B flow — consent + selfie + face match
+│   │   │       │   ├── GalleryPage.jsx      # Guest's matched photo gallery
+│   │   │       │   └── guest.css
+│   │   │       ├── subscription/
+│   │   │       │   ├── PlansPage.jsx        # Pricing plans comparison
+│   │   │       │   ├── SubscriptionPage.jsx # Current subscription management
+│   │   │       │   └── subscription.css
+│   │   │       └── admin/
+│   │   │           ├── AdminDashboardPage.jsx # Platform-wide stats
+│   │   │           ├── TenantManagePage.jsx   # Tenant list + management
+│   │   │           ├── PlanManagePage.jsx     # Plan CRUD
+│   │   │           └── admin.css
+│   │   └── package.json          # React 19, react-router-dom 7, vite 5, axios
+│   │
+│   ├── server/                   # Express.js API
+│   │   └── src/
+│   │       ├── app.js            # Express app setup (CORS, routes, error handler) — exports app, never calls listen()
+│   │       ├── index.js          # Local dev only — calls connectDB() + app.listen()
+│   │       ├── config/
+│   │       │   ├── db.js         # MongoDB connection (mongoose)
+│   │       │   ├── env.js        # Environment variable validation
+│   │       │   ├── queue.js      # BullMQ queue factory (image-processing, face-detection, event-delete)
+│   │       │   └── redis.js      # IORedis connection
+│   │       ├── controllers/      # Route handlers (thin — delegate to services)
+│   │       │   ├── auth.controller.js         # register, login, refresh, logout, me
+│   │       │   ├── dashboard.controller.js    # getStats
+│   │       │   ├── event.controller.js        # create, list, get, update, updateStatus, delete
+│   │       │   ├── guest.controller.js        # getEvent, consent, selfie, gallery
+│   │       │   ├── health.controller.js       # GET /health
+│   │       │   ├── profile.controller.js      # getProfile, updateProfile
+│   │       │   ├── subscription.controller.js # getPlans, createOrder, verifyPayment, webhook
+│   │       │   └── upload.controller.js       # getPresignedUrl, confirmUpload, batchConfirm
+│   │       ├── middleware/
+│   │       │   ├── auth.js              # JWT verification + req.user
+│   │       │   ├── guestAuth.js         # Guest token verification
+│   │       │   ├── tenantScope.js       # Adds req.tenantId from JWT
+│   │       │   ├── quotaCheck.js        # Plan limit enforcement
+│   │       │   ├── rateLimiter.js       # Redis-based rate limiting
+│   │       │   ├── validate.js          # Zod schema validation
+│   │       │   ├── errorHandler.js      # Global error handler
+│   │       │   ├── correlationId.js     # Request correlation ID
+│   │       │   ├── requestMetrics.js    # Request timing metrics
+│   │       │   └── securityHeaders.js   # Helmet-like security headers
+│   │       ├── models/               # Mongoose schemas (14 models)
+│   │       │   ├── User.js           # email, password, firstName, lastName, role, tenantId
+│   │       │   ├── Tenant.js         # businessName, slug, planId, subscriptionId, ownerId
+│   │       │   ├── Event.js          # title, tenantId, date{start,end}, location, accessMode, status, qrAToken, qrBToken
+│   │       │   ├── Photo.js          # eventId, tenantId, s3Key, status(uploaded/processing/ready/failed)
+│   │       │   ├── PhotoDerivative.js # photoId, type(thumbnail/web/watermarked), s3Key
+│   │       │   ├── FaceDetection.js  # photoId, faceIndex, embedding(vector), boundingBox
+│   │       │   ├── Guest.js          # eventId, consentGiven, guestToken, galleryToken
+│   │       │   ├── ReferenceFace.js  # guestId, eventId, embedding(vector), s3Key
+│   │       │   ├── Match.js          # guestId, photoId, eventId, score, status
+│   │       │   ├── ConsentRecord.js  # guestId, eventId, consentTextVersion, ipAddress
+│   │       │   ├── Plan.js           # name, slug, price, limits{maxEvents,maxPhotosPerEvent,maxStorageMB}
+│   │       │   ├── Subscription.js   # tenantId, planId, status, razorpaySubscriptionId
+│   │       │   ├── RetentionPolicy.js # tenantId, retentionDays
+│   │       │   └── AuditLog.js       # userId, tenantId, action, resourceType, resourceId, meta
+│   │       ├── routes/
+│   │       │   ├── auth.routes.js         # POST /register, /login, /refresh, /logout; GET /me
+│   │       │   ├── dashboard.routes.js    # GET /dashboard/stats
+│   │       │   ├── event.routes.js        # CRUD + DELETE /events/:eventId
+│   │       │   ├── guest.routes.js        # GET /guest/events/:token; POST /guest/consent, /guest/selfie; GET /guest/gallery/:galleryToken
+│   │       │   ├── profile.routes.js      # GET/PUT /profile
+│   │       │   ├── subscription.routes.js # GET /plans; POST /subscribe, /verify-payment; POST /webhook/razorpay
+│   │       │   └── upload.routes.js       # POST /upload/presigned-url, /upload/confirm, /upload/batch-confirm
+│   │       ├── services/             # Business logic layer
+│   │       │   ├── auth.service.js         # JWT generation, password hashing, user+tenant creation
+│   │       │   ├── dashboard.service.js    # Aggregate stats queries
+│   │       │   ├── event.service.js        # Event CRUD, QR token generation (crypto.randomBytes)
+│   │       │   ├── eventDelete.service.js  # Marks event 'deleting' + enqueues BullMQ job
+│   │       │   ├── guest.service.js        # Consent recording, guest token gen, gallery token gen
+│   │       │   ├── matching.service.js     # Face embedding comparison, match creation
+│   │       │   ├── profile.service.js      # Tenant profile CRUD
+│   │       │   ├── razorpay.service.js     # Razorpay order creation + payment verification
+│   │       │   ├── subscription.service.js # Plan management, subscription lifecycle
+│   │       │   ├── upload.service.js       # S3 presigned URL generation, upload confirmation
+│   │       │   └── audit.service.js        # Audit log recording
+│   │       ├── utils/
+│   │       │   ├── s3.js          # AWS S3 client, putObject, getSignedUrl, deleteObject, batchDelete, listByPrefix
+│   │       │   └── logger.js      # Winston/pino logger setup
+│   │       └── validators/        # Zod schemas for request validation
+│   │
+│   ├── worker/                    # BullMQ worker process (runs on Railway)
+│   │   └── src/
+│   │       ├── index.js           # Worker entry — connects to Redis, registers processors
+│   │       ├── config.js          # Worker environment config
+│   │       ├── db.js              # MongoDB connection for worker
+│   │       ├── s3.js              # S3 client for worker
+│   │       ├── models/            # Worker's own Mongoose model copies (6 models)
+│   │       │   ├── Event.js, Photo.js, PhotoDerivative.js
+│   │       │   ├── FaceDetection.js, Match.js, ReferenceFace.js
+│   │       ├── processors/
+│   │       │   ├── imageProcessor.js      # Resizes photos → thumbnails + web derivatives
+│   │       │   ├── faceProcessor.js       # Detects faces in photos, generates embeddings
+│   │       │   └── eventDeleteProcessor.js # Cascade deletes all event data + S3 objects
+│   │       └── providers/
+│   │           ├── faceProvider.interface.js # Abstract face detection interface
+│   │           ├── mockFaceProvider.js      # SHA-256 hash mock (not real AI yet)
+│   │           └── providerFactory.js       # Creates face provider based on FACE_PROVIDER env var
+│   │
+│   └── shared/                    # Shared constants
+│       └── src/constants.js       # EVENT_STATUS enum {DRAFT, ACTIVE, COMPLETED, ARCHIVED, DELETING}
+│
+├── .env.example                   # All environment variables with descriptions
+├── vercel.json                    # Unified Vercel deployment config
+├── docker-compose.yml             # Local dev: MongoDB + Redis
+├── AGENTS.md                      # Bug log, feature log, standing rules
+├── PRD.md                         # This file
+└── package.json                   # Root — workspaces: ["packages/*"], scripts: build/dev
+```
+
+## A.2 Data Flow Diagrams
+
+### Photographer Flow
+```
+Register → Login → JWT tokens → Dashboard
+  └→ Create Event (title, dates, access mode) → QR-A + QR-B tokens generated
+      └→ Upload Photos → S3 presigned URL → confirm → BullMQ 'image-processing' job
+          └→ Worker: resize → thumbnail + web derivatives → S3
+          └→ Worker: face detection → embeddings → MongoDB FaceDetection docs
+```
+
+### Guest Flow (QR-B — Find My Photos)
+```
+Scan QR-B → /guest/consent/:token → Event info loads
+  └→ Accept consent → POST /guest/consent → guestToken returned
+      └→ Capture selfie → POST /guest/selfie (base64 image + guestToken)
+          └→ Server: generate face embedding → compare vs event's FaceDetections
+          └→ Return matched photos → Redirect to /guest/gallery/:galleryToken
+```
+
+### Guest Flow (QR-A — View All)
+```
+Scan QR-A → /guest/events/:token → Event landing page → View all photos gallery
+```
+
+### Event Delete Flow
+```
+DELETE /events/:eventId → Mark status='deleting' → Enqueue BullMQ 'event-delete' job
+  └→ Worker: Delete Matches → FaceDetections → PhotoDerivatives → Photos
+  └→ Worker: S3 batch delete (originals/ + derivatives/ prefixes)
+  └→ Worker: Delete ConsentRecords → ReferenceFaces → Guests → Event
+```
+
+## A.3 API Endpoint Reference
+
+### Auth Routes (`/api/auth/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /register | No | Create tenant + user account |
+| POST | /login | No | Email/password → access + refresh JWT |
+| POST | /refresh | Refresh token | Rotate access token |
+| POST | /logout | Access token | Invalidate refresh token |
+| GET | /me | Access token | Current user + tenant info |
+
+### Event Routes (`/api/events/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | / | Photographer | List tenant's events |
+| POST | / | Photographer | Create new event |
+| GET | /:eventId | Photographer | Event detail + QR tokens |
+| PUT | /:eventId | Photographer | Update event fields |
+| PATCH | /:eventId/status | Photographer | Change event status |
+| DELETE | /:eventId | Photographer | Start async cascade delete |
+
+### Guest Routes (`/api/guest/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /events/:token | No | Event info by QR-A or QR-B token |
+| POST | /consent | No | Record guest consent, return guestToken |
+| POST | /selfie | Guest token | Upload selfie, trigger face matching |
+| GET | /gallery/:galleryToken | No | Get matched photos for gallery |
+
+### Upload Routes (`/api/upload/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /presigned-url | Photographer | Get S3 presigned upload URL |
+| POST | /confirm | Photographer | Confirm single upload complete |
+| POST | /batch-confirm | Photographer | Confirm batch uploads complete |
+
+### Dashboard Routes (`/api/dashboard/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /stats | Photographer | Aggregate stats (events, photos, guests, storage) |
+
+### Subscription Routes (`/api/subscription/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /plans | No | List available plans |
+| POST | /subscribe | Photographer | Create Razorpay order |
+| POST | /verify-payment | Photographer | Verify payment + activate subscription |
+| POST | /webhook/razorpay | No | Razorpay webhook handler |
+
+### Profile Routes (`/api/profile/`)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | / | Photographer | Get tenant profile |
+| PUT | / | Photographer | Update tenant profile |
+
+## A.4 Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| NODE_ENV | Yes | development | Environment mode |
+| PORT | No | 5000 | Server port (local dev only) |
+| MONGODB_URI | Yes | — | MongoDB Atlas connection string |
+| REDIS_URL | Yes | redis://localhost:6379 | Redis for BullMQ + rate limiting |
+| JWT_ACCESS_SECRET | Yes | — | JWT access token signing secret |
+| JWT_REFRESH_SECRET | Yes | — | JWT refresh token signing secret |
+| JWT_ACCESS_EXPIRES_IN | No | 15m | Access token TTL |
+| JWT_REFRESH_EXPIRES_IN | No | 7d | Refresh token TTL |
+| AWS_REGION | Yes | ap-south-1 | AWS region for S3 |
+| AWS_ACCESS_KEY_ID | Yes | — | AWS IAM access key |
+| AWS_SECRET_ACCESS_KEY | Yes | — | AWS IAM secret key |
+| S3_BUCKET_ORIGINALS | Yes | photofolio-originals | S3 bucket for original photos |
+| S3_BUCKET_DERIVATIVES | Yes | photofolio-derivatives | S3 bucket for resized photos |
+| RAZORPAY_KEY_ID | Yes | — | Razorpay API key |
+| RAZORPAY_KEY_SECRET | Yes | — | Razorpay API secret |
+| RAZORPAY_WEBHOOK_SECRET | Yes | — | Razorpay webhook signature secret |
+| CLIENT_URL | Yes | http://localhost:5173 | Frontend URL (for CORS) |
+| API_URL | No | http://localhost:5000 | Backend URL |
+| FACE_PROVIDER | No | mock | Face detection provider (mock/aws/azure) |
+| FACE_MATCH_THRESHOLD | No | 0.6 | Minimum cosine similarity for match |
+| WORKER_CONCURRENCY | No | 3 | BullMQ worker concurrency |
+| MAX_FILE_SIZE_BYTES | No | 52428800 | Max upload file size (50MB) |
+
+## A.5 Design System (Warm White-Cream Theme)
+
+### Color Palette
+| Token | Hex | Usage |
+|-------|-----|-------|
+| --color-bg | #FDFBF7 | Page background (warm off-white) |
+| --color-bg-elevated | #FFFFFF | Cards, modals, sidebar |
+| --color-surface | #F5F0E8 | Secondary background, hover states |
+| --color-border | #E8E2D9 | Borders, dividers |
+| --color-primary | #C9A96E | Accent — buttons, active states, links |
+| --color-primary-light | #D4BA85 | Accent hover/highlight |
+| --color-primary-dark | #B09055 | Accent pressed/dark |
+| --color-text | #2D2A26 | Primary text (warm dark) |
+| --color-text-secondary | #5A5650 | Secondary text |
+| --color-text-muted | #8A847C | Captions, placeholders |
+| --color-success | #5B9E72 | Success states |
+| --color-error | #C45B52 | Error states |
+| --color-warning | #D4A843 | Warning states |
+
+### Typography
+| Element | Font | Weight | Size |
+|---------|------|--------|------|
+| Headings | Playfair Display (serif) | 600-700 | clamp responsive |
+| Body | Inter (sans-serif) | 400 | 1rem (16px) |
+| Labels | Inter | 500 | 0.875rem (14px) |
+| Captions | Inter | 400 | 0.75rem (12px) |
+| Buttons | Inter | 600 | 0.875rem (14px) |
+
+### Responsive Breakpoints
+| Breakpoint | Target | Strategy |
+|------------|--------|----------|
+| Base (0px) | Mobile 360-767px | Default styles |
+| 768px | Tablet/Desktop | min-width media query |
+| 1024px | Large desktop | min-width media query |
+
+### Component Patterns
+- **Cards:** White bg, 1px border (#E8E2D9), 14px radius, warm shadow on hover
+- **Buttons:** 44px min height (touch target), 10px radius, gold gradient for primary
+- **Inputs:** 44px min height, white bg, focus ring rgba(201,169,110,0.12)
+- **Modals:** Bottom sheet on mobile (slide up), centered on desktop
+- **Sidebar:** Fixed 260px on desktop, off-canvas drawer on mobile
+- **Bottom nav:** Mobile only, 64px height, 3-4 items
+
+## A.6 Standing Rules & Gotchas
+
+1. **Mongoose guard pattern:** All models MUST use `mongoose.models.X || mongoose.model('X', schema)`
+2. **Never require() from server inside worker:** Worker has its own model copies
+3. **API paths:** Never include `/api/` prefix when using `api.raw` or `api.get/post` — baseURL already has it
+4. **Event dates:** Stored as nested `event.date.start` / `event.date.end`, NOT `event.dateStart`
+5. **Vercel timeout:** 30s max for serverless functions — long tasks must use BullMQ queue
+6. **Face matching:** Currently MOCK (SHA-256 hash), not real AI. See `FACE_PROVIDER=mock`
+7. **PowerShell + UTF-8:** Use Node.js `fs.writeFileSync` for files with emojis, not PowerShell
+8. **Vercel deployment:** Single project, root `vercel.json`, `api/index.js` as serverless entry
+9. **Railway worker:** No build step needed. Start command: `npm run start` from packages/worker
+10. **MongoDB Atlas:** Must allow 0.0.0.0/0 network access (Vercel dynamic IPs)
+
+## A.7 Feature Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Auth (register/login/JWT) | ✅ Built | Working on Vercel |
+| Event CRUD | ✅ Built | Create, list, detail, update, delete |
+| QR Code Generation | ✅ Built | QR-A (view all) + QR-B (find my photos) |
+| Photo Upload (S3 presigned) | ✅ Built | Browser → S3 direct, then confirm |
+| Image Processing (resize) | ✅ Built | Worker: thumbnail + web derivatives |
+| Face Detection | ⚠️ Mock | SHA-256 hash, not real embeddings |
+| Face Matching | ⚠️ Mock | Hash comparison, not vector similarity |
+| Guest Consent Flow | ✅ Built | 2-step: consent → selfie |
+| Guest Gallery | ✅ Built | Matched photos display |
+| Event Delete (cascade) | ✅ Built | Async via BullMQ worker |
+| Subscription/Billing | ✅ Built | Razorpay integration |
+| Admin Dashboard | ✅ Built | Stats, tenant management, plan management |
+| Mobile-First UI | ✅ Built | Warm cream theme, bottom nav, responsive |
+| Analytics | ❌ Not started | Phase 2 |
+| Email Notifications | ❌ Not started | Phase 2 |
+

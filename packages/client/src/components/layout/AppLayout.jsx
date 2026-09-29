@@ -1,22 +1,48 @@
 /**
  * AppLayout — authenticated layout shell.
- * Sidebar nav + header + content area. Responsive.
+ * Sidebar nav + mobile bottom nav + content area. Mobile-first responsive.
  */
 
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './layout.css';
+
+const NAV_ITEMS_PHOTOGRAPHER = [
+  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { to: '/events', label: 'Events', icon: '📷' },
+  { to: '/subscription', label: 'Plan', icon: '💳' },
+];
+
+const NAV_ITEMS_ADMIN = [
+  { to: '/admin', label: 'Admin', icon: '🛡' },
+  { to: '/admin/tenants', label: 'Tenants', icon: '👥' },
+  { to: '/admin/plans', label: 'Plans', icon: '📋' },
+];
 
 export default function AppLayout() {
   const { user, tenant, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when sidebar open
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen]);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  const navItems = isAdmin ? NAV_ITEMS_ADMIN : NAV_ITEMS_PHOTOGRAPHER;
 
   return (
     <div className="app-layout">
@@ -29,46 +55,26 @@ export default function AppLayout() {
         {sidebarOpen ? '✕' : '☰'}
       </button>
 
+      {/* Sidebar overlay (mobile) */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay sidebar-overlay--visible" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar__brand">
-          <h1 className="sidebar__logo">📸 PhotoFolio</h1>
+          <h1 className="sidebar__logo">
+            📷 Photo<span className="sidebar__logo-accent">Folio</span>
+          </h1>
         </div>
 
         <nav className="sidebar__nav">
-          {!isAdmin && (
-            <>
-              <NavLink to="/dashboard" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-                <span className="sidebar__link-icon">📊</span>
-                Dashboard
-              </NavLink>
-              <NavLink to="/events" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-                <span className="sidebar__link-icon">🎉</span>
-                Events
-              </NavLink>
-              <NavLink to="/subscription" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-                <span className="sidebar__link-icon">💳</span>
-                Subscription
-              </NavLink>
-            </>
-          )}
-
-          {isAdmin && (
-            <>
-              <NavLink to="/admin" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-                <span className="sidebar__link-icon">🛡️</span>
-                Admin Dashboard
-              </NavLink>
-              <NavLink to="/admin/tenants" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-                <span className="sidebar__link-icon">👥</span>
-                Tenants
-              </NavLink>
-              <NavLink to="/admin/plans" className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-                <span className="sidebar__link-icon">📋</span>
-                Plans
-              </NavLink>
-            </>
-          )}
+          {navItems.map(({ to, label, icon }) => (
+            <NavLink key={to} to={to} className="sidebar__link" onClick={() => setSidebarOpen(false)}>
+              <span className="sidebar__link-icon">{icon}</span>
+              {label}
+            </NavLink>
+          ))}
         </nav>
 
         <div className="sidebar__footer">
@@ -82,20 +88,25 @@ export default function AppLayout() {
             </div>
           </div>
           <button className="sidebar__logout" onClick={handleLogout}>
-            Logout
+            Sign Out
           </button>
         </div>
       </aside>
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
-      )}
 
       {/* Main content */}
       <main className="app-layout__main">
         <Outlet />
       </main>
+
+      {/* Mobile bottom navigation */}
+      <nav className="bottom-nav">
+        {navItems.map(({ to, label, icon }) => (
+          <NavLink key={to} to={to} className="bottom-nav__link">
+            <span className="bottom-nav__link-icon">{icon}</span>
+            {label}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }

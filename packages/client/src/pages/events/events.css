@@ -85,7 +85,7 @@
 .upload-zone:hover,
 .upload-zone--active {
   border-color: var(--color-primary);
-  background: rgba(108, 92, 231, 0.05);
+  background: rgba(201, 169, 110, 0.05);
 }
 
 .upload-zone__icon { font-size: 3rem; margin-bottom: var(--space-4); }
@@ -136,7 +136,7 @@
   transition: width 0.3s ease;
 }
 
-/* Delete Event Modal — FR-EVENT-007 */
+/* Delete Event Modal ï¿½ FR-EVENT-007 */
 .modal-overlay {
   position: fixed;
   top: 0;

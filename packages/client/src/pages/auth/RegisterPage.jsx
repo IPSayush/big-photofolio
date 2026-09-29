@@ -49,7 +49,7 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-card__header">
-          <h1 className="auth-card__logo">📸 PhotoFolio</h1>
+          <h1 className="auth-card__logo">Photo<span className="auth-card__logo-accent">Folio</span></h1>
           <p className="auth-card__subtitle">Create your account</p>
         </div>
 
