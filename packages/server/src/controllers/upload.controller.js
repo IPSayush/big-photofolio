@@ -1,5 +1,5 @@
-/**
- * Upload Controller — thin HTTP layer for upload operations.
+﻿/**
+ * Upload Controller â€” thin HTTP layer for upload operations.
  * FR-UPLOAD-001 through FR-UPLOAD-007.
  *
  * Routes: /api/events/:eventId/photos/*
@@ -125,7 +125,7 @@ async function getFailedPhotos(req, res, next) {
 }
 /**
  * POST /api/events/:eventId/photos/retry
- * FR-PIPE-004: Retry failed photos — re-enqueue for processing.
+ * FR-PIPE-004: Retry failed photos â€” re-enqueue for processing.
  */
 async function retryFailedPhotos(req, res, next) {
   try {
@@ -146,6 +146,31 @@ async function retryFailedPhotos(req, res, next) {
   }
 }
 
+
+/**
+ * POST /api/events/:eventId/photos/reprocess
+ * Repair: Re-enqueue stuck photos (uploaded/validating) for processing.
+ */
+async function reprocessStuckPhotos(req, res, next) {
+  try {
+    const result = await uploadService.reprocessStuckPhotos(
+      req.tenantId,
+      req.params.eventId,
+      auditParamsFromReq(req)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: result.reprocessed > 0 
+        ? ` stuck photos re-enqueued for processing.`
+        : 'No stuck photos found.',
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -153,4 +178,6 @@ module.exports = {
   listPhotos,
   getFailedPhotos,
   retryFailedPhotos,
+  reprocessStuckPhotos,
 };
+

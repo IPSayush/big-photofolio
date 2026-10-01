@@ -1,5 +1,5 @@
-/**
- * Upload Service — photo upload business logic.
+﻿/**
+ * Upload Service â€” photo upload business logic.
  * FR-UPLOAD-001: Bulk upload event photos post-event.
  * FR-UPLOAD-002: Pre-signed S3 URLs (no proxying through app server).
  * FR-UPLOAD-003: Batch tracking for resumable uploads.
@@ -38,13 +38,13 @@ const { EVENT_STATUS, PHOTO_STATUS } = require('@photofolio/shared');
  * @returns {object} { batchId, files: [{ photoId, uploadUrl, s3Key, isDuplicate }] }
  */
 async function requestUploadUrls(tenantId, eventId, files, actor) {
-  // Verify event exists and belongs to tenant — SEC-001
+  // Verify event exists and belongs to tenant â€” SEC-001
   const event = await Event.findOne({ _id: eventId, tenantId });
   if (!event) {
     throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
   }
 
-  // Cannot upload to archived events — FR-EVENT-005
+  // Cannot upload to archived events â€” FR-EVENT-005
   if (event.status === EVENT_STATUS.ARCHIVED) {
     throw new AppError(
       'Cannot upload photos to an archived event.',
@@ -53,7 +53,7 @@ async function requestUploadUrls(tenantId, eventId, files, actor) {
     );
   }
 
-  // FR-UPLOAD-004: Validate batch size — NFR-MAINT-001: limit from config
+  // FR-UPLOAD-004: Validate batch size â€” NFR-MAINT-001: limit from config
   if (files.length > env.upload.maxBatchSize) {
     throw new AppError(
       `Batch size exceeds maximum of ${env.upload.maxBatchSize} files per request.`,
@@ -91,7 +91,7 @@ async function requestUploadUrls(tenantId, eventId, files, actor) {
     throw err;
   }
 
-  // FR-PLAN-003: Check maxPhotosPerEvent quota — read from Plan config, never hardcoded
+  // FR-PLAN-003: Check maxPhotosPerEvent quota â€” read from Plan config, never hardcoded
   const tenant = await Tenant.findById(tenantId);
   if (tenant && tenant.planId) {
     const plan = await Plan.findById(tenant.planId);
@@ -120,7 +120,7 @@ async function requestUploadUrls(tenantId, eventId, files, actor) {
   );
   const existingHashes = new Set(existingPhotos.map((p) => p.hash));
 
-  // Generate batch ID for grouping — FR-UPLOAD-003
+  // Generate batch ID for grouping â€” FR-UPLOAD-003
   const batchId = crypto.randomUUID();
 
   // Create Photo records and generate pre-signed URLs
@@ -178,7 +178,7 @@ async function requestUploadUrls(tenantId, eventId, files, actor) {
     });
   }
 
-  // Update event stats — FR-EVENT-006
+  // Update event stats â€” FR-EVENT-006
   const newPhotosCreated = results.filter((r) => !r.isDuplicate).length;
   if (newPhotosCreated > 0) {
     await Event.findByIdAndUpdate(eventId, {
@@ -210,7 +210,7 @@ async function requestUploadUrls(tenantId, eventId, files, actor) {
 
 /**
  * Confirm that uploads to S3 completed successfully.
- * FR-UPLOAD-003: Enables batch-level resumability — client confirms each file.
+ * FR-UPLOAD-003: Enables batch-level resumability â€” client confirms each file.
  *
  * @param {string} tenantId - Verified tenant ID from middleware.
  * @param {string} eventId - Event ID.
@@ -251,7 +251,7 @@ async function confirmUpload(tenantId, eventId, photoIds) {
       });
     }
 
-    // Update status to validating — pipeline has started
+    // Update status to validating â€” pipeline has started
     await Photo.updateMany(
       { _id: { $in: photoIds }, tenantId, eventId, status: PHOTO_STATUS.UPLOADED },
       { $set: { status: PHOTO_STATUS.VALIDATING } }
@@ -280,7 +280,7 @@ async function confirmUpload(tenantId, eventId, photoIds) {
  * @returns {object} Status counts by pipeline stage.
  */
 async function getUploadStatus(tenantId, eventId) {
-  // Verify event belongs to tenant — SEC-001
+  // Verify event belongs to tenant â€” SEC-001
   const event = await Event.findOne({ _id: eventId, tenantId });
   if (!event) {
     throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
@@ -333,7 +333,7 @@ async function getUploadStatus(tenantId, eventId) {
  * @returns {object} { photos, pagination }
  */
 async function listPhotos(tenantId, eventId, filters = {}) {
-  // Verify event belongs to tenant — SEC-001
+  // Verify event belongs to tenant â€” SEC-001
   const event = await Event.findOne({ _id: eventId, tenantId });
   if (!event) {
     throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
@@ -390,7 +390,7 @@ async function getFailedPhotos(tenantId, eventId) {
 }
 
 /**
- * Retry failed photos — re-enqueue for processing.
+ * Retry failed photos â€” re-enqueue for processing.
  * FR-PIPE-004: Failed photos can be retried by the photographer.
  *
  * @param {string} tenantId - Verified tenant ID from middleware.
@@ -400,13 +400,13 @@ async function getFailedPhotos(tenantId, eventId) {
  * @returns {object} { retried }
  */
 async function retryFailedPhotos(tenantId, eventId, photoIds, actor) {
-  // Verify event belongs to tenant — SEC-001
+  // Verify event belongs to tenant â€” SEC-001
   const event = await Event.findOne({ _id: eventId, tenantId });
   if (!event) {
     throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
   }
 
-  // Only retry photos that are actually failed — SEC-001
+  // Only retry photos that are actually failed â€” SEC-001
   const failedPhotos = await Photo.find({
     _id: { $in: photoIds },
     tenantId,
@@ -425,7 +425,7 @@ async function retryFailedPhotos(tenantId, eventId, photoIds, actor) {
     { $set: { status: PHOTO_STATUS.VALIDATING, failureReason: null } }
   );
 
-  // Re-enqueue for processing — FR-PIPE-001
+  // Re-enqueue for processing â€” FR-PIPE-001
   const queue = getImageProcessingQueue();
   for (const photo of failedPhotos) {
     await queue.add('process-photo', {
@@ -458,6 +458,75 @@ async function retryFailedPhotos(tenantId, eventId, photoIds, actor) {
   return { retried: failedPhotos.length };
 }
 
+
+/**
+ * Reprocess stuck photos - re-enqueue photos that are stuck in uploaded/validating status.
+ * This is a repair function for when the Redis queue was unavailable during upload.
+ *
+ * @param {string} tenantId - Verified tenant ID from middleware.
+ * @param {string} eventId - Event ID.
+ * @param {object} actor - Actor info for audit logging.
+ * @returns {object} { reprocessed }
+ */
+async function reprocessStuckPhotos(tenantId, eventId, actor) {
+  // Verify event belongs to tenant
+  const event = await Event.findOne({ _id: eventId, tenantId });
+  if (!event) {
+    throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
+  }
+
+  // Find photos stuck in uploaded or validating status that were confirmed
+  const stuckPhotos = await Photo.find({
+    eventId: event._id,
+    tenantId: event.tenantId,
+    status: { $in: [PHOTO_STATUS.UPLOADED, PHOTO_STATUS.VALIDATING] },
+    uploadConfirmed: true,
+  });
+
+  if (stuckPhotos.length === 0) {
+    return { reprocessed: 0 };
+  }
+
+  // Reset status to validating and re-enqueue
+  const stuckIds = stuckPhotos.map((p) => p._id);
+  await Photo.updateMany(
+    { _id: { $in: stuckIds } },
+    { $set: { status: PHOTO_STATUS.VALIDATING, failureReason: null } }
+  );
+
+  // Re-enqueue for processing
+  const queue = getImageProcessingQueue();
+  for (const photo of stuckPhotos) {
+    await queue.add('process-photo', {
+      photoId: photo._id.toString(),
+      tenantId: tenantId.toString(),
+      eventId: eventId.toString(),
+      s3OriginalKey: photo.s3OriginalKey,
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+      removeOnComplete: 100,
+      removeOnFail: 500,
+    });
+  }
+
+  // Audit log
+  await logAction({
+    ...actor,
+    action: 'photo.reprocess_stuck',
+    targetType: 'Event',
+    targetId: eventId,
+    metadata: { reprocessedCount: stuckPhotos.length, photoIds: stuckIds.map(String) },
+  });
+
+  logger.info(
+    { tenantId, eventId, reprocessed: stuckPhotos.length },
+    'Stuck photos re-enqueued for processing'
+  );
+
+  return { reprocessed: stuckPhotos.length };
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -465,4 +534,6 @@ module.exports = {
   listPhotos,
   getFailedPhotos,
   retryFailedPhotos,
+  reprocessStuckPhotos,
 };
+

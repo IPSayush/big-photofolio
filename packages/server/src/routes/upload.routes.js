@@ -1,5 +1,5 @@
-/**
- * Upload Routes — /api/events/:eventId/photos
+﻿/**
+ * Upload Routes â€” /api/events/:eventId/photos
  * FR-UPLOAD-001 through FR-UPLOAD-007: Photo upload, status, and management.
  *
  * All routes require authentication + tenant scoping (SEC-001/SEC-002).
@@ -21,7 +21,7 @@ const {
 const { ROLES } = require('@photofolio/shared');
 const { checkPhotoQuota } = require('../middleware/quotaCheck');
 
-// All upload routes: authenticate → authorize → tenant scope
+// All upload routes: authenticate â†’ authorize â†’ tenant scope
 router.use(authenticate, authorize(ROLES.PHOTOGRAPHER), enforceTenantScope);
 
 // FR-UPLOAD-002 / API-007: Request pre-signed S3 upload URLs
@@ -59,11 +59,19 @@ router.get(
   uploadController.getFailedPhotos
 );
 
-// FR-PIPE-004: Retry failed photos — re-enqueue for processing
+// FR-PIPE-004: Retry failed photos â€” re-enqueue for processing
 router.post(
   '/retry',
   validate(confirmUploadSchema, 'body'), // Reuses same { photoIds } schema
   uploadController.retryFailedPhotos
 );
 
+
+// Repair: Re-enqueue stuck photos (uploaded/validating) for processing
+router.post(
+  '/reprocess',
+  uploadController.reprocessStuckPhotos
+);
+
 module.exports = router;
+
