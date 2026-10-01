@@ -580,6 +580,36 @@ async function fixPhotoStatuses(tenantId, eventId) {
   return { fixed: fixedCount, total: stuckPhotos.length, details };
 }
 
+
+/**
+ * Force-mark photos as processed. Emergency repair when worker processed
+ * photos but ALL MongoDB updates from worker side failed.
+ * This directly sets status to processed on the server side.
+ */
+async function forceMarkProcessed(tenantId, eventId) {
+  const event = await Event.findOne({ _id: eventId, tenantId });
+  if (!event) {
+    throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
+  }
+
+  const result = await Photo.updateMany(
+    {
+      eventId: event._id,
+      tenantId: event.tenantId,
+      status: { $in: [PHOTO_STATUS.UPLOADED, PHOTO_STATUS.VALIDATING, PHOTO_STATUS.PROCESSING] },
+      uploadConfirmed: true,
+    },
+    { $set: { status: PHOTO_STATUS.PROCESSED, failureReason: null } }
+  );
+
+  logger.info(
+    { tenantId, eventId, modified: result.modifiedCount },
+    'Photos force-marked as processed'
+  );
+
+  return { fixed: result.modifiedCount };
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -589,6 +619,8 @@ module.exports = {
   retryFailedPhotos,
   reprocessStuckPhotos,
   fixPhotoStatuses,
+  forceMarkProcessed,
 };
+
 
 

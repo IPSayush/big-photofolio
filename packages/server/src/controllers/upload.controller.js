@@ -195,6 +195,19 @@ async function fixPhotoStatuses(req, res, next) {
   }
 }
 
+
+async function forceMarkProcessed(req, res, next) {
+  try {
+    const result = await uploadService.forceMarkProcessed(
+      req.tenantId,
+      req.params.eventId
+    );
+    res.status(200).json({ success: true, message: ` photos force-marked as processed.`, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -204,6 +217,8 @@ module.exports = {
   retryFailedPhotos,
   reprocessStuckPhotos,
   fixPhotoStatuses,
+  forceMarkProcessed,
 };
+
 
 

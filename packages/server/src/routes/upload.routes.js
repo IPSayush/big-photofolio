@@ -80,6 +80,14 @@ router.post(
   uploadController.fixPhotoStatuses
 );
 
+
+// Emergency: Force-mark photos as processed
+router.post(
+  '/force-processed',
+  uploadController.forceMarkProcessed
+);
+
 module.exports = router;
+
 
 
