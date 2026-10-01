@@ -1,5 +1,5 @@
-/**
- * Event Controller — thin HTTP layer for event operations.
+﻿/**
+ * Event Controller â€” thin HTTP layer for event operations.
  * FR-EVENT-001 through FR-EVENT-006.
  *
  * Routes: /api/events/*
@@ -156,6 +156,40 @@ async function deleteEvent(req, res, next) {
   }
 }
 
+
+/**
+ * POST /api/events/:eventId/force-delete
+ * Emergency: Force cascade delete for events stuck in 'deleting' status.
+ * Runs the cascade delete synchronously on the server instead of via worker.
+ */
+async function forceDeleteEvent(req, res, next) {
+  try {
+    const { executeCascadeDelete } = require('../services/eventDelete.service');
+    const Event = require('../models/Event');
+    
+    const event = await Event.findOne({ _id: req.params.eventId, tenantId: req.tenantId });
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    // Execute cascade delete directly on the server
+    const summary = await executeCascadeDelete(
+      req.tenantId,
+      req.params.eventId,
+      event.name || 'Unknown',
+      req.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Event permanently deleted.',
+      data: summary,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createEvent,
   listEvents,
@@ -164,4 +198,6 @@ module.exports = {
   regenerateQrCode,
   archiveEvent,
   deleteEvent,
+  forceDeleteEvent,
 };
+

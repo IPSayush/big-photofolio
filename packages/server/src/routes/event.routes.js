@@ -1,5 +1,5 @@
-/**
- * Event Routes — /api/events
+﻿/**
+ * Event Routes â€” /api/events
  * FR-EVENT-001 through FR-EVENT-006: Event CRUD, QR codes, archival.
  *
  * All routes require authentication + tenant scoping (SEC-001/SEC-002).
@@ -21,7 +21,7 @@ const {
 const { ROLES } = require('@photofolio/shared');
 const { checkEventQuota } = require('../middleware/quotaCheck');
 
-// All event routes: authenticate → authorize → tenant scope
+// All event routes: authenticate â†’ authorize â†’ tenant scope
 router.use(authenticate, authorize(ROLES.PHOTOGRAPHER), enforceTenantScope);
 
 // FR-EVENT-001/002: Create event (dual QR codes auto-generated)
@@ -72,4 +72,12 @@ router.delete(
   eventController.deleteEvent
 );
 
+
+// Emergency: Force cascade delete for stuck events
+router.post(
+  '/:eventId/force-delete',
+  eventController.forceDeleteEvent
+);
+
 module.exports = router;
+
