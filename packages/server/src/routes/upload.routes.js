@@ -73,5 +73,13 @@ router.post(
   uploadController.reprocessStuckPhotos
 );
 
+
+// Repair: Fix photo statuses based on derivative existence
+router.post(
+  '/fix-status',
+  uploadController.fixPhotoStatuses
+);
+
 module.exports = router;
+
 

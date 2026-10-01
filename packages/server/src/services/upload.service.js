@@ -13,6 +13,7 @@
 
 const crypto = require('crypto');
 const Photo = require('../models/Photo');
+const PhotoDerivative = require('../models/PhotoDerivative');
 const Event = require('../models/Event');
 const Plan = require('../models/Plan');
 const Tenant = require('../models/Tenant');
@@ -527,6 +528,58 @@ async function reprocessStuckPhotos(tenantId, eventId, actor) {
   return { reprocessed: stuckPhotos.length };
 }
 
+
+/**
+ * Fix photo statuses - mark photos as 'processed' if their derivatives exist in DB.
+ * This is a repair function for when the worker processed photos but failed to update
+ * the photo status in MongoDB (e.g., due to connection issues or ObjectId mismatch).
+ *
+ * @param {string} tenantId - Verified tenant ID from middleware.
+ * @param {string} eventId - Event ID.
+ * @returns {object} { fixed }
+ */
+async function fixPhotoStatuses(tenantId, eventId) {
+  const event = await Event.findOne({ _id: eventId, tenantId });
+  if (!event) {
+    throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
+  }
+
+  // Find photos that are NOT in 'processed' status
+  const stuckPhotos = await Photo.find({
+    eventId: event._id,
+    tenantId: event.tenantId,
+    status: { $in: [PHOTO_STATUS.UPLOADED, PHOTO_STATUS.VALIDATING, PHOTO_STATUS.PROCESSING] },
+  });
+
+  if (stuckPhotos.length === 0) {
+    return { fixed: 0, details: [] };
+  }
+
+  const details = [];
+  let fixedCount = 0;
+
+  for (const photo of stuckPhotos) {
+    // Check if derivatives exist for this photo
+    const derivativeCount = await PhotoDerivative.countDocuments({ photoId: photo._id });
+    if (derivativeCount >= 3) {
+      // Photo has all 3 derivatives (thumbnail, web_optimized, watermarked) - mark as processed
+      await Photo.findByIdAndUpdate(photo._id, {
+        status: PHOTO_STATUS.PROCESSED,
+        failureReason: null,
+      });
+      fixedCount++;
+      details.push({ photoId: photo._id.toString(), oldStatus: photo.status, derivativeCount });
+    }
+  }
+
+  logger.info(
+    { tenantId, eventId, fixed: fixedCount, total: stuckPhotos.length },
+    'Photo statuses fixed based on derivative existence'
+  );
+
+  return { fixed: fixedCount, total: stuckPhotos.length, details };
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -535,5 +588,7 @@ module.exports = {
   getFailedPhotos,
   retryFailedPhotos,
   reprocessStuckPhotos,
+  fixPhotoStatuses,
 };
+
 

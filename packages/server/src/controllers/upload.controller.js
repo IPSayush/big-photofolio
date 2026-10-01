@@ -171,6 +171,30 @@ async function reprocessStuckPhotos(req, res, next) {
   }
 }
 
+
+/**
+ * POST /api/events/:eventId/photos/fix-status
+ * Repair: Mark photos as processed if their derivatives exist.
+ */
+async function fixPhotoStatuses(req, res, next) {
+  try {
+    const result = await uploadService.fixPhotoStatuses(
+      req.tenantId,
+      req.params.eventId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: result.fixed > 0
+        ? ` photo statuses fixed.`
+        : 'No photos needed fixing.',
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -179,5 +203,7 @@ module.exports = {
   getFailedPhotos,
   retryFailedPhotos,
   reprocessStuckPhotos,
+  fixPhotoStatuses,
 };
+
 
