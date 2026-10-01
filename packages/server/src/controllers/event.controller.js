@@ -164,25 +164,44 @@ async function deleteEvent(req, res, next) {
  */
 async function forceDeleteEvent(req, res, next) {
   try {
-    const { executeCascadeDelete } = require('../services/eventDelete.service');
     const Event = require('../models/Event');
+    const Photo = require('../models/Photo');
+    const PhotoDerivative = require('../models/PhotoDerivative');
+    const FaceDetection = require('../models/FaceDetection');
+    const Match = require('../models/Match');
+    const Guest = require('../models/Guest');
+    const ConsentRecord = require('../models/ConsentRecord');
+    const ReferenceFace = require('../models/ReferenceFace');
     
-    const event = await Event.findOne({ _id: req.params.eventId, tenantId: req.tenantId });
+    const eventId = req.params.eventId;
+    const tenantId = req.tenantId;
+    
+    const event = await Event.findOne({ _id: eventId, tenantId });
     if (!event) {
       return res.status(404).json({ success: false, message: 'Event not found.' });
     }
 
-    // Execute cascade delete directly on the server
-    const summary = await executeCascadeDelete(
-      req.tenantId,
-      req.params.eventId,
-      event.name || 'Unknown',
-      req.userId
-    );
+    // Fast DB-only cascade delete (skip S3 to avoid Vercel timeout)
+    const summary = {};
+    summary.matches = (await Match.deleteMany({ eventId })).deletedCount;
+    summary.faceDetections = (await FaceDetection.deleteMany({ eventId })).deletedCount;
+    summary.photoDerivatives = (await PhotoDerivative.deleteMany({ eventId })).deletedCount;
+    summary.photos = (await Photo.deleteMany({ eventId, tenantId })).deletedCount;
+    
+    const guests = await Guest.find({ eventId, tenantId }).select('_id').lean();
+    const guestIds = guests.map(g => g._id);
+    if (guestIds.length > 0) {
+      summary.consentRecords = (await ConsentRecord.deleteMany({ guestId: { $in: guestIds } })).deletedCount;
+      summary.referenceFaces = (await ReferenceFace.deleteMany({ guestId: { $in: guestIds } })).deletedCount;
+    }
+    summary.guests = (await Guest.deleteMany({ eventId, tenantId })).deletedCount;
+    
+    // Delete event itself
+    await Event.deleteOne({ _id: eventId, tenantId });
 
     res.status(200).json({
       success: true,
-      message: 'Event permanently deleted.',
+      message: 'Event permanently deleted (S3 cleanup skipped for speed).',
       data: summary,
     });
   } catch (err) {
@@ -200,4 +219,5 @@ module.exports = {
   deleteEvent,
   forceDeleteEvent,
 };
+
 
