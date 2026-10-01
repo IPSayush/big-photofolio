@@ -1,5 +1,5 @@
-/**
- * BullMQ Queue Configuration — producer side.
+﻿/**
+ * BullMQ Queue Configuration - producer side.
  * FR-PIPE-001: API server enqueues jobs; worker processes them.
  *
  * In test mode, returns mock queues to avoid Redis dependency in CI.
@@ -12,21 +12,31 @@ const logger = require('../utils/logger');
 /**
  * Parse Redis URL into ioredis-compatible connection options.
  * Handles redis:// and rediss:// (TLS) URLs.
+ * FIX: Added family:4 to force IPv4 (prevents ECONNREFUSED ::1:6379).
+ * FIX: Auto-detect TLS for Upstash and other cloud Redis providers.
  */
 function parseRedisUrl(url) {
   try {
     const parsed = new URL(url);
+    const host = parsed.hostname || 'localhost';
     const opts = {
-      host: parsed.hostname || 'localhost',
+      host,
       port: parseInt(parsed.port, 10) || 6379,
       maxRetriesPerRequest: null, // Required by BullMQ
+      family: 4, // Force IPv4 - prevents ::1 (IPv6) resolution issues
     };
     if (parsed.password) opts.password = decodeURIComponent(parsed.password);
     if (parsed.username && parsed.username !== 'default') opts.username = parsed.username;
-    if (parsed.protocol === 'rediss:') opts.tls = {};
+
+    // Enable TLS if protocol is rediss:// OR if host is a known cloud Redis provider
+    const isCloudRedis = host.includes('upstash.io') || host.includes('redis.cloud') || host.includes('redislabs.com');
+    if (parsed.protocol === 'rediss:' || isCloudRedis) {
+      opts.tls = {};
+    }
+
     return opts;
   } catch {
-    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null };
+    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null, family: 4 };
   }
 }
 
@@ -34,7 +44,7 @@ function parseRedisUrl(url) {
 const queues = {};
 
 /**
- * Mock queue for test mode — captures jobs without Redis.
+ * Mock queue for test mode - captures jobs without Redis.
  * FR-PIPE-003: Tests can inspect enqueued jobs.
  */
 class MockQueue {
@@ -70,7 +80,7 @@ function getQueue(name) {
   try {
     const connection = parseRedisUrl(env.redisUrl);
     queues[name] = new Queue(name, { connection });
-    logger.info({ queue: name }, 'BullMQ queue created');
+    logger.info({ queue: name, host: connection.host, tls: !!connection.tls }, 'BullMQ queue created');
     return queues[name];
   } catch (err) {
     logger.error({ err, queue: name }, 'Failed to create BullMQ queue');
