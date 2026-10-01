@@ -87,7 +87,12 @@ router.post(
   uploadController.forceMarkProcessed
 );
 
+
+// DEBUG: Reset photo for testing worker
+router.post('/reset-test', uploadController.resetPhotoForTesting);
+
 module.exports = router;
+
 
 
 

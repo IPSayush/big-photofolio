@@ -208,6 +208,14 @@ async function forceMarkProcessed(req, res, next) {
   }
 }
 
+
+async function resetPhotoForTesting(req, res, next) {
+  try {
+    const result = await uploadService.resetPhotoForTesting(req.tenantId, req.params.eventId);
+    res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -218,7 +226,9 @@ module.exports = {
   reprocessStuckPhotos,
   fixPhotoStatuses,
   forceMarkProcessed,
+  resetPhotoForTesting,
 };
+
 
 
 

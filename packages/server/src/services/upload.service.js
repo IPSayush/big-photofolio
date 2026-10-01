@@ -610,6 +610,38 @@ async function forceMarkProcessed(tenantId, eventId) {
   return { fixed: result.modifiedCount };
 }
 
+
+/**
+ * Reset one photo to 'uploaded' status for testing worker processing.
+ * DEBUG ONLY - remove after fixing worker MongoDB issue.
+ */
+async function resetPhotoForTesting(tenantId, eventId) {
+  const event = await Event.findOne({ _id: eventId, tenantId });
+  if (!event) throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
+
+  const photo = await Photo.findOne({ eventId: event._id, tenantId, status: PHOTO_STATUS.PROCESSED });
+  if (!photo) return { reset: false, message: 'No processed photos found.' };
+
+  photo.status = PHOTO_STATUS.UPLOADED;
+  await photo.save();
+
+  // Enqueue it for processing
+  const queue = getImageProcessingQueue();
+  await queue.add('process-image', {
+    photoId: photo._id.toString(),
+    tenantId: tenantId.toString(),
+    eventId: eventId.toString(),
+    s3OriginalKey: photo.s3OriginalKey,
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: 100,
+    removeOnFail: 500,
+  });
+
+  return { reset: true, photoId: photo._id.toString(), message: 'Photo reset and enqueued for worker debug test.' };
+}
+
 module.exports = {
   requestUploadUrls,
   confirmUpload,
@@ -620,7 +652,9 @@ module.exports = {
   reprocessStuckPhotos,
   fixPhotoStatuses,
   forceMarkProcessed,
+  resetPhotoForTesting,
 };
+
 
 
 
