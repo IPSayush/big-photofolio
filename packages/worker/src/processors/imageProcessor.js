@@ -1,6 +1,6 @@
-/**
- * Image Processor — BullMQ job handler for derivative generation.
- * FR-PIPE-002: Pipeline stages: validation → derivative generation → status update.
+﻿/**
+ * Image Processor â€” BullMQ job handler for derivative generation.
+ * FR-PIPE-002: Pipeline stages: validation â†’ derivative generation â†’ status update.
  * FR-PIPE-003: Each stage is independently retryable and idempotent.
  * FR-PIPE-004: Failures flagged with reason.
  * NFR-OBS-001: Structured logging for latency and failures.
@@ -8,6 +8,7 @@
 
 const sharp = require('sharp');
 const pino = require('pino');
+const mongoose = require('mongoose');
 const config = require('../config');
 const { downloadFromS3, uploadToS3, buildDerivativeKey } = require('../s3');
 const Photo = require('../models/Photo');
@@ -79,9 +80,9 @@ async function processImage(job) {
     }
 
     // --- Stage 4: Create/Update PhotoDerivative records ---
-    // FR-PIPE-003: Idempotent — upsert by { photoId, type }
+    // FR-PIPE-003: Idempotent â€” upsert by { photoId, type }
     for (const derivative of derivatives) {
-      await PhotoDerivative.findOneAndUpdate(
+      const derivResult = await PhotoDerivative.findOneAndUpdate(
         { photoId, type: derivative.type },
         {
           photoId,
@@ -96,6 +97,7 @@ async function processImage(job) {
         },
         { upsert: true, new: true }
       );
+      logger.info({ photoId, derivativeType: derivative.type, derivId: derivResult?._id?.toString(), upserted: !!derivResult }, 'DEBUG: PhotoDerivative upsert result');
     }
 
     // --- Stage 5: Mark as processed (derivatives done) ---
@@ -270,10 +272,42 @@ async function applyWatermark(imageBuffer, width, height, wmCfg) {
 }
 
 /**
- * Update photo status. Idempotent — FR-PIPE-003.
+ * Update photo status. Idempotent â€” FR-PIPE-003.
  */
 async function updatePhotoStatus(photoId, status) {
-  await Photo.findByIdAndUpdate(photoId, { status, failureReason: null });
+  // DEBUG: Log mongoose connection state and photoId details
+  const connState = mongoose.connection.readyState;
+  const connStateNames = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  logger.info({
+    photoId,
+    photoIdType: typeof photoId,
+    status,
+    mongooseState: connStateNames[connState] || connState,
+    dbName: mongoose.connection.db ? mongoose.connection.db.databaseName : 'NO_DB',
+  }, 'DEBUG: updatePhotoStatus called');
+
+  try {
+    const result = await Photo.findByIdAndUpdate(photoId, { status, failureReason: null }, { new: true });
+    if (result) {
+      logger.info({ photoId, newStatus: result.status, docId: result._id.toString() }, 'DEBUG: Photo status updated successfully');
+    } else {
+      logger.error({ photoId, status }, 'DEBUG: Photo.findByIdAndUpdate returned NULL - document not found!');
+      
+      // Extra debug: try to find the photo directly
+      const exists = await Photo.findById(photoId);
+      logger.error({
+        photoId,
+        existsById: !!exists,
+        existsStatus: exists ? exists.status : 'N/A',
+      }, 'DEBUG: Photo existence check');
+      
+      // Count total photos in collection
+      const totalPhotos = await Photo.countDocuments({});
+      logger.error({ totalPhotos }, 'DEBUG: Total photos in worker DB');
+    }
+  } catch (err) {
+    logger.error({ photoId, status, error: err.message, stack: err.stack }, 'DEBUG: updatePhotoStatus THREW error');
+  }
 }
 
 /**
@@ -288,3 +322,4 @@ class ProcessingError extends Error {
 }
 
 module.exports = { processImage, generateDerivatives, applyWatermark, ProcessingError };
+

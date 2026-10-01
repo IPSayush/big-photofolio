@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Worker MongoDB Connection.
  * Connects to the same Atlas instance as the API server.
  */
@@ -25,7 +25,14 @@ async function connectDB(uri) {
 
   try {
     await mongoose.connect(uri);
-    logger.info('Worker: MongoDB connected');
+    const dbName = mongoose.connection.db ? mongoose.connection.db.databaseName : 'UNKNOWN';
+    const host = mongoose.connection.host || 'UNKNOWN';
+    logger.info({
+      dbName,
+      host,
+      readyState: mongoose.connection.readyState,
+      uriDbName: uri.split('/').pop()?.split('?')[0] || 'UNKNOWN',
+    }, 'Worker: MongoDB connected - DEBUG connection details');
   } catch (err) {
     logger.error({ err }, 'Worker: MongoDB connection failed');
     throw err;
@@ -41,3 +48,4 @@ async function disconnectDB() {
 }
 
 module.exports = { connectDB, disconnectDB };
+
