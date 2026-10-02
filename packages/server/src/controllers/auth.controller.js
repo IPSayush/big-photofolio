@@ -303,4 +303,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getMe,
+  getAvatarPresignUrl,
+  updateAvatar,
+  updateUserProfile,
 };
