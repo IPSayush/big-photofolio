@@ -1,5 +1,5 @@
-﻿/**
- * Admin Dashboard â€” FR-MON-002.
+/**
+ * Admin Dashboard - FR-MON-002.
  * Platform-wide metrics, tenant list, plan distribution.
  */
 
@@ -7,8 +7,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, StatCard, Spinner, Button, Badge } from '../../components/common';
+import { Building, CheckCircle, XCircle, CalendarDays, Camera, Users, Link2 } from '../../components/Icons';
 import '../dashboard/dashboard.css';
 import './admin.css';
+
+/* Helper: wraps SVG icon in the stat-card icon container */
+function iconEl(IconComp) {
+  return <IconComp size={22} />;
+}
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState(null);
@@ -37,14 +43,14 @@ export default function AdminDashboardPage() {
 
       {/* Platform Stats */}
       <div className="stats-grid">
-        <StatCard icon="ðŸ¢" label="Total Tenants" value={platform.totalTenants} />
-        <StatCard icon="âœ…" label="Active" value={platform.activeTenants} />
-        <StatCard icon="â›”" label="Suspended" value={platform.suspendedTenants} />
-        <StatCard icon="ðŸŽ‰" label="Events" value={platform.totalEvents} />
-        <StatCard icon="ðŸ“·" label="Photos" value={platform.totalPhotos} />
-        <StatCard icon="âœ…" label="Processed" value={platform.processedPhotos} />
-        <StatCard icon="ðŸ‘¥" label="Guests" value={platform.totalGuests} />
-        <StatCard icon="ðŸ¤–" label="Matches" value={platform.totalMatches} />
+        <StatCard icon={iconEl(Building)} label="Total Tenants" value={platform.totalTenants} />
+        <StatCard icon={iconEl(CheckCircle)} label="Active" value={platform.activeTenants} />
+        <StatCard icon={iconEl(XCircle)} label="Suspended" value={platform.suspendedTenants} />
+        <StatCard icon={iconEl(CalendarDays)} label="Events" value={platform.totalEvents} />
+        <StatCard icon={iconEl(Camera)} label="Photos" value={platform.totalPhotos} />
+        <StatCard icon={iconEl(CheckCircle)} label="Processed" value={platform.processedPhotos} />
+        <StatCard icon={iconEl(Users)} label="Guests" value={platform.totalGuests} />
+        <StatCard icon={iconEl(Link2)} label="Matches" value={platform.totalMatches} />
       </div>
 
       {/* Plan Distribution */}
@@ -80,7 +86,7 @@ export default function AdminDashboardPage() {
               <div key={t._id} className="tenant-table__row">
                 <span className="tenant-table__name">{t.businessName}</span>
                 <span className="tenant-table__email">{t.contactEmail}</span>
-                <span>{t.planId?.name || 'â€”'}</span>
+                <span>{t.planId?.name || '\u2014'}</span>
                 <Badge variant={t.status === 'active' ? 'success' : 'error'}>{t.status}</Badge>
                 <span className="tenant-table__date">{new Date(t.createdAt).toLocaleDateString('en-IN')}</span>
               </div>

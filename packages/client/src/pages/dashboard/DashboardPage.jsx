@@ -1,5 +1,5 @@
 /**
- * Photographer Dashboard — FR-MON-001.
+ * Photographer Dashboard - FR-MON-001.
  * Shows totals, per-event stats, and quota remaining.
  */
 
@@ -7,7 +7,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, StatCard, Badge, Spinner, Button, EmptyState } from '../../components/common';
+import { CalendarDays, Camera, Users, Link2, HardDrive, CheckCircle } from '../../components/Icons';
 import './dashboard.css';
+
+/* Helper: wraps SVG icon in the stat-card icon container */
+function iconEl(IconComp) {
+  return <IconComp size={22} />;
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
@@ -42,12 +48,12 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="stats-grid">
-        <StatCard icon="🎉" label="Events" value={totals.events} />
-        <StatCard icon="📷" label="Photos" value={totals.totalPhotos} />
-        <StatCard icon="👥" label="Guests" value={totals.totalGuests} />
-        <StatCard icon="🤖" label="AI Matches" value={totals.totalMatches} />
-        <StatCard icon="💾" label="Storage" value={formatBytes(totals.totalStorageBytes)} />
-        <StatCard icon="✅" label="Processed" value={totals.processedPhotos} />
+        <StatCard icon={iconEl(CalendarDays)} label="Events" value={totals.events} />
+        <StatCard icon={iconEl(Camera)} label="Photos" value={totals.totalPhotos} />
+        <StatCard icon={iconEl(Users)} label="Guests" value={totals.totalGuests} />
+        <StatCard icon={iconEl(Link2)} label="AI Matches" value={totals.totalMatches} />
+        <StatCard icon={iconEl(HardDrive)} label="Storage" value={formatBytes(totals.totalStorageBytes)} />
+        <StatCard icon={iconEl(CheckCircle)} label="Processed" value={totals.processedPhotos} />
       </div>
 
       {/* Quota */}
@@ -56,7 +62,7 @@ export default function DashboardPage() {
           <Card.Header>
             <div className="dashboard__quota-header">
               <h2>Plan: {plan.name}</h2>
-              <Link to="/subscription"><Button variant="ghost" size="sm">Manage →</Button></Link>
+              <Link to="/subscription"><Button variant="ghost" size="sm">Manage</Button></Link>
             </div>
           </Card.Header>
           <Card.Body>
@@ -74,7 +80,7 @@ export default function DashboardPage() {
         <h2 className="section-title">Recent Events</h2>
         {events.length === 0 ? (
           <EmptyState
-            icon="🎉"
+            icon={<CalendarDays size={48} />}
             title="No events yet"
             description="Create your first event to get started"
             action={<Link to="/events/new"><Button variant="primary">Create Event</Button></Link>}
@@ -98,9 +104,9 @@ export default function DashboardPage() {
                       })}
                     </p>
                     <div className="event-card__stats">
-                      <span>📷 {event.stats?.photoCount || 0}</span>
-                      <span>👥 {event.stats?.guestCount || 0}</span>
-                      <span>🤖 {event.stats?.matchCount || 0}</span>
+                      <span><Camera size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.photoCount || 0}</span>
+                      <span><Users size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.guestCount || 0}</span>
+                      <span><Link2 size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.matchCount || 0}</span>
                     </div>
                   </Card.Body>
                 </Card>

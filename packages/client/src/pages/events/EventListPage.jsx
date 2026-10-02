@@ -1,11 +1,12 @@
 /**
- * Event List Page — lists photographer's events.
+ * Event List Page - lists photographer's events.
  */
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, Badge, Button, Spinner, EmptyState } from '../../components/common';
+import { Camera, Users, Link2, CalendarDays } from '../../components/Icons';
 import '../dashboard/dashboard.css';
 
 export default function EventListPage() {
@@ -30,7 +31,7 @@ export default function EventListPage() {
 
       {events.length === 0 ? (
         <EmptyState
-          icon="🎉"
+          icon={<CalendarDays size={48} />}
           title="No events yet"
           description="Create your first event to start uploading photos and onboarding guests."
           action={<Link to="/events/new"><Button variant="primary">Create Event</Button></Link>}
@@ -52,9 +53,9 @@ export default function EventListPage() {
                     {new Date(event.dateStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                   <div className="event-card__stats">
-                    <span>📷 {event.stats?.photoCount || 0}</span>
-                    <span>👥 {event.stats?.guestCount || 0}</span>
-                    <span>🤖 {event.stats?.matchCount || 0}</span>
+                    <span><Camera size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.photoCount || 0}</span>
+                    <span><Users size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.guestCount || 0}</span>
+                    <span><Link2 size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.matchCount || 0}</span>
                   </div>
                 </Card.Body>
               </Card>

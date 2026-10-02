@@ -1,5 +1,5 @@
-﻿/**
- * AppLayout â€” authenticated layout shell.
+/**
+ * AppLayout - authenticated layout shell.
  * Sidebar nav + top header bar + mobile bottom nav + content area.
  * Mobile-first responsive.
  */
@@ -7,18 +7,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { LayoutDashboard, CalendarDays, CreditCard, Shield, Users, MenuIcon, LogOut, MoreHorizontal } from '../Icons';
 import './layout.css';
 
 const NAV_ITEMS_PHOTOGRAPHER = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'ðŸ“Š' },
-  { to: '/events', label: 'Events', icon: 'ðŸ“·' },
-  { to: '/subscription', label: 'Plan', icon: 'ðŸ’³' },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/events', label: 'Events', icon: CalendarDays },
+  { to: '/subscription', label: 'Plan', icon: CreditCard },
 ];
 
 const NAV_ITEMS_ADMIN = [
-  { to: '/admin', label: 'Admin', icon: 'ðŸ›¡' },
-  { to: '/admin/tenants', label: 'Tenants', icon: 'ðŸ‘¥' },
-  { to: '/admin/plans', label: 'Plans', icon: 'ðŸ“‹' },
+  { to: '/admin', label: 'Admin', icon: Shield },
+  { to: '/admin/tenants', label: 'Tenants', icon: Users },
+  { to: '/admin/plans', label: 'Plans', icon: CreditCard },
 ];
 
 export default function AppLayout() {
@@ -71,9 +72,7 @@ export default function AppLayout() {
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label="Toggle menu"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M3 6h18M3 12h18M3 18h18" />
-            </svg>
+            <MenuIcon size={20} />
           </button>
           <span className="app-header__brand">
             Photo<span className="app-header__brand-accent">Folio</span>
@@ -114,14 +113,14 @@ export default function AppLayout() {
       <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar__brand">
           <h1 className="sidebar__logo">
-            ðŸ“· Photo<span className="sidebar__logo-accent">Folio</span>
+            Photo<span className="sidebar__logo-accent">Folio</span>
           </h1>
         </div>
 
         <nav className="sidebar__nav">
-          {navItems.map(({ to, label, icon }) => (
+          {navItems.map(({ to, label, icon: IconComp }) => (
             <NavLink key={to} to={to} className="sidebar__link" onClick={() => setSidebarOpen(false)}>
-              <span className="sidebar__link-icon">{icon}</span>
+              <span className="sidebar__link-icon"><IconComp size={18} /></span>
               {label}
             </NavLink>
           ))}
@@ -138,11 +137,7 @@ export default function AppLayout() {
             </div>
           </div>
           <button className="sidebar__logout" onClick={handleLogout}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+            <LogOut size={16} style={{ marginRight: '8px', flexShrink: 0 }} />
             Sign Out
           </button>
         </div>
@@ -155,15 +150,15 @@ export default function AppLayout() {
 
       {/* ======= Mobile bottom navigation ======= */}
       <nav className="bottom-nav">
-        {navItems.map(({ to, label, icon }) => (
+        {navItems.map(({ to, label, icon: IconComp }) => (
           <NavLink key={to} to={to} className="bottom-nav__link">
-            <span className="bottom-nav__link-icon">{icon}</span>
+            <span className="bottom-nav__link-icon"><IconComp size={20} /></span>
             {label}
           </NavLink>
         ))}
         {/* More button opens sidebar with logout */}
         <button className="bottom-nav__link" onClick={() => setSidebarOpen(true)}>
-          <span className="bottom-nav__link-icon">â˜°</span>
+          <span className="bottom-nav__link-icon"><MoreHorizontal size={20} /></span>
           More
         </button>
       </nav>

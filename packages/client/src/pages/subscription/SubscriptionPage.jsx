@@ -1,5 +1,5 @@
 /**
- * Subscription Page — current plan, usage, and cancel.
+ * Subscription Page - current plan, usage, and cancel.
  * FR-PLAN-004.
  */
 
@@ -7,8 +7,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, Button, Spinner, Badge, StatCard } from '../../components/common';
+import { CalendarDays, Camera, HardDrive, Users, Link2, CreditCard } from '../../components/Icons';
 import '../dashboard/dashboard.css';
 import './subscription.css';
+
+function iconEl(IconComp) {
+  return <IconComp size={22} />;
+}
 
 export default function SubscriptionPage() {
   const [data, setData] = useState(null);
@@ -51,7 +56,7 @@ export default function SubscriptionPage() {
         <Card>
           <Card.Body>
             <div className="empty-state">
-              <div className="empty-state__icon">💳</div>
+              <div className="empty-state__icon"><CreditCard size={48} /></div>
               <h3 className="empty-state__title">No Active Subscription</h3>
               <p className="empty-state__desc">Choose a plan to unlock all features.</p>
               <Link to="/plans"><Button variant="primary">View Plans</Button></Link>
@@ -85,11 +90,11 @@ export default function SubscriptionPage() {
             <div style={{ marginTop: 'var(--space-6)' }}>
               <h2 className="section-title">Usage</h2>
               <div className="stats-grid">
-                <StatCard icon="🎉" label="Events" value={usage.eventsUsed} />
-                <StatCard icon="📷" label="Photos" value={usage.photosUploaded} />
-                <StatCard icon="💾" label="Storage" value={formatBytes(usage.storageBytesUsed)} />
-                <StatCard icon="👥" label="Guests" value={usage.guestsOnboarded} />
-                <StatCard icon="🤖" label="Matches" value={usage.matchesGenerated} />
+                <StatCard icon={iconEl(CalendarDays)} label="Events" value={usage.eventsUsed} />
+                <StatCard icon={iconEl(Camera)} label="Photos" value={usage.photosUploaded} />
+                <StatCard icon={iconEl(HardDrive)} label="Storage" value={formatBytes(usage.storageBytesUsed)} />
+                <StatCard icon={iconEl(Users)} label="Guests" value={usage.guestsOnboarded} />
+                <StatCard icon={iconEl(Link2)} label="Matches" value={usage.matchesGenerated} />
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 /**
- * Gallery Page — personalized photo gallery.
+ * Gallery Page - personalized photo gallery.
  * FR-GALLERY-001/002: View matched photos + download.
  */
 
@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, Spinner, Button, EmptyState } from '../../components/common';
+import { Camera, X as XIcon } from '../../components/Icons';
 import './guest.css';
 
 export default function GalleryPage() {
@@ -27,7 +28,7 @@ export default function GalleryPage() {
   if (!data || !data.photos || data.photos.length === 0) {
     return (
       <EmptyState
-        icon="🔍"
+        icon={<Camera size={48} />}
         title="No photos found yet"
         description="Our AI is still processing. Check back in a few minutes!"
       />
@@ -46,7 +47,7 @@ export default function GalleryPage() {
           <div key={idx} className="gallery__item" onClick={() => setSelectedPhoto(photo)}>
             <img src={photo.thumbnailUrl || photo.url} alt={`Photo ${idx + 1}`} loading="lazy" />
             <div className="gallery__item-overlay">
-              <span>🔍</span>
+              <Camera size={24} />
             </div>
           </div>
         ))}
@@ -56,11 +57,13 @@ export default function GalleryPage() {
       {selectedPhoto && (
         <div className="lightbox" onClick={() => setSelectedPhoto(null)}>
           <div className="lightbox__content" onClick={(e) => e.stopPropagation()}>
-            <button className="lightbox__close" onClick={() => setSelectedPhoto(null)}>✕</button>
+            <button className="lightbox__close" onClick={() => setSelectedPhoto(null)}>
+              <XIcon size={24} />
+            </button>
             <img src={selectedPhoto.url} alt="Full size" />
             <div className="lightbox__actions">
               <a href={selectedPhoto.downloadUrl || selectedPhoto.url} download>
-                <Button variant="primary" size="lg">⬇️ Download</Button>
+                <Button variant="primary" size="lg">Download</Button>
               </a>
             </div>
           </div>

@@ -8,8 +8,13 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, StatCard, Badge, Button, Spinner } from '../../components/common';
+import { Camera, CheckCircle, XCircle, Users, Link2, HardDrive, Upload, AlertCircle } from '../../components/Icons';
 import '../dashboard/dashboard.css';
 import './events.css';
+
+function iconEl(IconComp) {
+  return <IconComp size={22} />;
+}
 
 export default function EventDetailPage() {
   const { eventId } = useParams();
@@ -50,7 +55,6 @@ export default function EventDetailPage() {
   const stats = event.stats || {};
   const isDeleting = event.status === 'deleting';
 
-  // Event model stores dates as event.date.start / event.date.end (nested object)
   const startDate = event.date?.start ? new Date(event.date.start).toLocaleString('en-IN') : 'Not set';
   const endDate = event.date?.end ? new Date(event.date.end).toLocaleString('en-IN') : 'Same as start';
 
@@ -68,7 +72,7 @@ export default function EventDetailPage() {
 
       {isDeleting && (
         <div className="auth-card__error" style={{ marginBottom: 'var(--space-4)', textAlign: 'center', padding: 'var(--space-4)' }}>
-          ⚠️ This event is being permanently deleted. All data will be removed shortly.
+          This event is being permanently deleted. All data will be removed shortly.
         </div>
       )}
 
@@ -77,10 +81,10 @@ export default function EventDetailPage() {
         <Card>
           <Card.Body>
             <div className="event-info-grid">
-              <div><span className="event-info__label">📍 Venue</span><span>{event.venue}</span></div>
-              <div><span className="event-info__label">📅 Start</span><span>{startDate}</span></div>
-              <div><span className="event-info__label">📅 End</span><span>{endDate}</span></div>
-              <div><span className="event-info__label">🔐 Access</span><span>{event.accessMode}</span></div>
+              <div><span className="event-info__label">Venue</span><span>{event.venue}</span></div>
+              <div><span className="event-info__label">Start</span><span>{startDate}</span></div>
+              <div><span className="event-info__label">End</span><span>{endDate}</span></div>
+              <div><span className="event-info__label">Access</span><span>{event.accessMode}</span></div>
             </div>
           </Card.Body>
         </Card>
@@ -88,12 +92,12 @@ export default function EventDetailPage() {
 
       {/* Stats */}
       <div className="stats-grid" style={{ marginTop: 'var(--space-6)' }}>
-        <StatCard icon="📸" label="Photos" value={stats.photoCount || 0} />
-        <StatCard icon="✅" label="Processed" value={stats.processedPhotoCount || 0} />
-        <StatCard icon="❌" label="Failed" value={stats.failedPhotoCount || 0} />
-        <StatCard icon="👥" label="Guests" value={stats.guestCount || 0} />
-        <StatCard icon="🔍" label="Matches" value={stats.matchCount || 0} />
-        <StatCard icon="💾" label="Storage" value={formatBytes(stats.storageUsedBytes || 0)} />
+        <StatCard icon={iconEl(Camera)} label="Photos" value={stats.photoCount || 0} />
+        <StatCard icon={iconEl(CheckCircle)} label="Processed" value={stats.processedPhotoCount || 0} />
+        <StatCard icon={iconEl(XCircle)} label="Failed" value={stats.failedPhotoCount || 0} />
+        <StatCard icon={iconEl(Users)} label="Guests" value={stats.guestCount || 0} />
+        <StatCard icon={iconEl(Link2)} label="Matches" value={stats.matchCount || 0} />
+        <StatCard icon={iconEl(HardDrive)} label="Storage" value={formatBytes(stats.storageUsedBytes || 0)} />
       </div>
 
       {/* QR Codes */}
@@ -129,7 +133,9 @@ export default function EventDetailPage() {
       {!isDeleting && (
         <div className="event-detail__actions" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', flexWrap: 'wrap' }}>
           <Link to={`/events/${eventId}/upload`}>
-            <Button variant="primary" size="lg">📷 Upload Photos</Button>
+            <Button variant="primary" size="lg">
+              <Upload size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Upload Photos
+            </Button>
           </Link>
           <Button
             variant="ghost"
@@ -137,7 +143,7 @@ export default function EventDetailPage() {
             onClick={() => setShowDeleteModal(true)}
             style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
           >
-            🗑️ Delete Event
+            Delete Event
           </Button>
         </div>
       )}
@@ -147,16 +153,16 @@ export default function EventDetailPage() {
         <div className="modal-overlay" onClick={() => !deleting && setShowDeleteModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2 className="modal-title" style={{ color: 'var(--color-error)' }}>
-              ⚠️ Permanently Delete Event
+              Permanently Delete Event
             </h2>
             <p className="modal-desc">
               This action is <strong>irreversible</strong>. The following will be permanently deleted:
             </p>
             <ul className="modal-list">
-              <li>📸 All {stats.photoCount || 0} photos (originals + derivatives)</li>
-              <li>👥 All {stats.guestCount || 0} guest records and consent data</li>
-              <li>🧬 All face detection data and matches</li>
-              <li>☁️ All files from cloud storage (S3)</li>
+              <li>All {stats.photoCount || 0} photos (originals + derivatives)</li>
+              <li>All {stats.guestCount || 0} guest records and consent data</li>
+              <li>All face detection data and matches</li>
+              <li>All files from cloud storage (S3)</li>
             </ul>
             <p className="modal-desc" style={{ marginTop: 'var(--space-4)' }}>
               To confirm, type the event name: <strong>{event.name}</strong>
@@ -180,7 +186,7 @@ export default function EventDetailPage() {
                 disabled={deleteConfirmName !== event.name || deleting}
                 style={{ backgroundColor: 'var(--color-error)', borderColor: 'var(--color-error)' }}
               >
-                🗑️ Delete Forever
+                Delete Forever
               </Button>
             </div>
           </div>
