@@ -1,5 +1,5 @@
-﻿/**
- * Login Page â€” email + password authentication.
+/**
+ * Login Page - email + password authentication.
  */
 
 import { useState } from 'react';
@@ -29,7 +29,11 @@ export default function LoginPage() {
       const from = location.state?.from?.pathname || defaultPath;
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      // error can be string or object - always extract a string for display
+      const errData = err.response?.data?.error;
+      const errMsg = typeof errData === 'string' ? errData
+        : errData?.message || 'Login failed. Please try again.';
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -60,7 +64,7 @@ export default function LoginPage() {
             id="password"
             label="Password"
             type="password"
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="Enter your password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required

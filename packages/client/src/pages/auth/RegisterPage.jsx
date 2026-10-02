@@ -1,5 +1,5 @@
 /**
- * Register Page — photographer account creation.
+ * Register Page - photographer account creation.
  */
 
 import { useState } from 'react';
@@ -35,10 +35,11 @@ export default function RegisterPage() {
     } catch (err) {
       const data = err.response?.data;
       if (data?.details?.length) {
-        // Show field-level messages from validate middleware (SEC-002)
-        setError(data.details.map((d) => d.message).join(' • '));
+        setError(data.details.map((d) => d.message).join(' \u2022 '));
       } else {
-        setError(data?.error || 'Registration failed. Please try again.');
+        const errData = data?.error;
+        const errMsg = typeof errData === 'string' ? errData : errData?.message || 'Registration failed. Please try again.';
+        setError(errMsg);
       }
     } finally {
       setLoading(false);
