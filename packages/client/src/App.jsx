@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -17,6 +17,7 @@ import EventDetailPage from './pages/events/EventDetailPage';
 import UploadPage from './pages/events/UploadPage';
 import PlansPage from './pages/subscription/PlansPage';
 import SubscriptionPage from './pages/subscription/SubscriptionPage';
+import ProfilePage from './pages/profile/ProfilePage';
 
 // Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -60,6 +61,7 @@ function App() {
             <Route path="/events/:eventId/upload" element={<UploadPage />} />
             <Route path="/plans" element={<PlansPage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
           {/* Admin routes */}
@@ -71,6 +73,7 @@ function App() {
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/tenants" element={<TenantManagePage />} />
             <Route path="/admin/plans" element={<PlanManagePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
           {/* Redirects */}

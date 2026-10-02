@@ -87,4 +87,25 @@ router.get(
   authController.getMe
 );
 
+// Avatar presigned URL for upload
+router.post(
+  '/avatar/presign',
+  authenticate,
+  authController.getAvatarPresignUrl
+);
+
+// Update avatar after S3 upload
+router.patch(
+  '/avatar',
+  authenticate,
+  authController.updateAvatar
+);
+
+// Update user profile (name)
+router.patch(
+  '/profile',
+  authenticate,
+  authController.updateUserProfile
+);
+
 module.exports = router;

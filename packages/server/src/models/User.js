@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: 100,
     },
+    avatarUrl: {
+      type: String,
+      default: null,
+      maxlength: 1000,
+    },
     status: {
       type: String,
       enum: Object.values(USER_STATUS),

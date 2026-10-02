@@ -96,6 +96,9 @@ export default function AppLayout() {
                 <div className="user-dropdown__tenant">{tenant?.businessName}</div>
               </div>
               <div className="user-dropdown__divider" />
+              <button className="user-dropdown__item" onClick={() => { setUserMenuOpen(false); navigate("/profile"); }}>
+                Profile
+              </button>
               <button className="user-dropdown__item user-dropdown__logout" onClick={handleLogout}>
                 Sign Out
               </button>
@@ -127,7 +130,7 @@ export default function AppLayout() {
         </nav>
 
         <div className="sidebar__footer">
-          <div className="sidebar__user">
+          <div className="sidebar__user" onClick={() => { setSidebarOpen(false); navigate("/profile"); }} style={{ cursor: "pointer" }}>
             <div className="sidebar__user-avatar">
               {initials}
             </div>

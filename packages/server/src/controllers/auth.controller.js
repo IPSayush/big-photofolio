@@ -1,5 +1,5 @@
 /**
- * Auth Controller â€” thin HTTP layer for auth operations.
+ * Auth Controller Ã¢â‚¬â€ thin HTTP layer for auth operations.
  * 
  * Controllers handle request/response concerns only.
  * All business logic is in auth.service.js.
@@ -183,6 +183,111 @@ async function getMe(req, res, next) {
     res.status(200).json({
       success: true,
       data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/auth/avatar/presign
+ * Generate presigned URL for avatar upload to S3.
+ */
+async function getAvatarPresignUrl(req, res, next) {
+  try {
+    const { generatePresignedPutUrl } = require('../utils/s3');
+    const env = require('../config/env');
+    const userId = req.user.userId;
+    const contentType = req.body.contentType || 'image/jpeg';
+
+    // Validate content type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(contentType)) {
+      return res.status(400).json({ error: 'Invalid content type. Use JPEG, PNG, or WebP.' });
+    }
+
+    const ext = contentType.split('/')[1] === 'jpeg' ? 'jpg' : contentType.split('/')[1];
+    const key = `avatars/${userId}.${ext}`;
+    const bucket = env.aws.s3BucketOriginals;
+
+    const uploadUrl = await generatePresignedPutUrl(bucket, key, contentType, 300);
+
+    res.status(200).json({
+      success: true,
+      data: { uploadUrl, key, bucket },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/auth/avatar
+ * Update user's avatar URL after successful S3 upload.
+ */
+async function updateAvatar(req, res, next) {
+  try {
+    const User = require('../models/User');
+    const { generatePresignedGetUrl } = require('../utils/s3');
+    const env = require('../config/env');
+    const userId = req.user.userId;
+    const { key } = req.body;
+
+    if (!key) {
+      return res.status(400).json({ error: 'S3 key is required.' });
+    }
+
+    // Build a public-ish URL (or we can generate signed URLs on demand)
+    const avatarUrl = `https://${env.aws.s3BucketOriginals}.s3.${env.aws.region}.amazonaws.com/${key}`;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { avatarUrl },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar updated successfully.',
+      data: { user },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/auth/profile
+ * Update user's name.
+ */
+async function updateUserProfile(req, res, next) {
+  try {
+    const User = require('../models/User');
+    const userId = req.user.userId;
+    const { firstName, lastName } = req.body;
+
+    const updateData = {};
+    if (firstName) updateData.firstName = firstName;
+    if (lastName) updateData.lastName = lastName;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'Provide at least firstName or lastName.' });
+    }
+
+    const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated.',
+      data: { user },
     });
   } catch (err) {
     next(err);
