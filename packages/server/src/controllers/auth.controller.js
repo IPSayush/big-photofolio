@@ -1,5 +1,5 @@
 /**
- * Auth Controller Ã¢â‚¬â€ thin HTTP layer for auth operations.
+ * Auth Controller ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â thin HTTP layer for auth operations.
  * 
  * Controllers handle request/response concerns only.
  * All business logic is in auth.service.js.
