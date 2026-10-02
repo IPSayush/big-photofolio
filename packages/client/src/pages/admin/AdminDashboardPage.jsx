@@ -1,5 +1,5 @@
-/**
- * Admin Dashboard — FR-MON-002.
+﻿/**
+ * Admin Dashboard â€” FR-MON-002.
  * Platform-wide metrics, tenant list, plan distribution.
  */
 
@@ -29,19 +29,22 @@ export default function AdminDashboardPage() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Admin Dashboard</h1>
-        <Link to="/admin/tenants"><Button variant="secondary">Manage Tenants</Button></Link>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <Link to="/admin/tenants"><Button variant="secondary" size="sm">Tenants</Button></Link>
+          <Link to="/admin/plans"><Button variant="secondary" size="sm">Plans</Button></Link>
+        </div>
       </div>
 
       {/* Platform Stats */}
       <div className="stats-grid">
-        <StatCard icon="🏢" label="Total Tenants" value={platform.totalTenants} />
-        <StatCard icon="✅" label="Active" value={platform.activeTenants} />
-        <StatCard icon="⛔" label="Suspended" value={platform.suspendedTenants} />
-        <StatCard icon="🎉" label="Events" value={platform.totalEvents} />
-        <StatCard icon="📷" label="Photos" value={platform.totalPhotos} />
-        <StatCard icon="✅" label="Processed" value={platform.processedPhotos} />
-        <StatCard icon="👥" label="Guests" value={platform.totalGuests} />
-        <StatCard icon="🤖" label="Matches" value={platform.totalMatches} />
+        <StatCard icon="ðŸ¢" label="Total Tenants" value={platform.totalTenants} />
+        <StatCard icon="âœ…" label="Active" value={platform.activeTenants} />
+        <StatCard icon="â›”" label="Suspended" value={platform.suspendedTenants} />
+        <StatCard icon="ðŸŽ‰" label="Events" value={platform.totalEvents} />
+        <StatCard icon="ðŸ“·" label="Photos" value={platform.totalPhotos} />
+        <StatCard icon="âœ…" label="Processed" value={platform.processedPhotos} />
+        <StatCard icon="ðŸ‘¥" label="Guests" value={platform.totalGuests} />
+        <StatCard icon="ðŸ¤–" label="Matches" value={platform.totalMatches} />
       </div>
 
       {/* Plan Distribution */}
@@ -77,7 +80,7 @@ export default function AdminDashboardPage() {
               <div key={t._id} className="tenant-table__row">
                 <span className="tenant-table__name">{t.businessName}</span>
                 <span className="tenant-table__email">{t.contactEmail}</span>
-                <span>{t.planId?.name || '—'}</span>
+                <span>{t.planId?.name || 'â€”'}</span>
                 <Badge variant={t.status === 'active' ? 'success' : 'error'}>{t.status}</Badge>
                 <span className="tenant-table__date">{new Date(t.createdAt).toLocaleDateString('en-IN')}</span>
               </div>

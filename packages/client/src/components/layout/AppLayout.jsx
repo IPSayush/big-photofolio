@@ -1,5 +1,5 @@
-/**
- * AppLayout — authenticated layout shell.
+﻿/**
+ * AppLayout â€” authenticated layout shell.
  * Sidebar nav + top header bar + mobile bottom nav + content area.
  * Mobile-first responsive.
  */
@@ -10,15 +10,15 @@ import { useAuth } from '../../hooks/useAuth';
 import './layout.css';
 
 const NAV_ITEMS_PHOTOGRAPHER = [
-  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/events', label: 'Events', icon: '📷' },
-  { to: '/subscription', label: 'Plan', icon: '💳' },
+  { to: '/dashboard', label: 'Dashboard', icon: 'ðŸ“Š' },
+  { to: '/events', label: 'Events', icon: 'ðŸ“·' },
+  { to: '/subscription', label: 'Plan', icon: 'ðŸ’³' },
 ];
 
 const NAV_ITEMS_ADMIN = [
-  { to: '/admin', label: 'Admin', icon: '🛡' },
-  { to: '/admin/tenants', label: 'Tenants', icon: '👥' },
-  { to: '/admin/plans', label: 'Plans', icon: '📋' },
+  { to: '/admin', label: 'Admin', icon: 'ðŸ›¡' },
+  { to: '/admin/tenants', label: 'Tenants', icon: 'ðŸ‘¥' },
+  { to: '/admin/plans', label: 'Plans', icon: 'ðŸ“‹' },
 ];
 
 export default function AppLayout() {
@@ -114,7 +114,7 @@ export default function AppLayout() {
       <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar__brand">
           <h1 className="sidebar__logo">
-            📷 Photo<span className="sidebar__logo-accent">Folio</span>
+            ðŸ“· Photo<span className="sidebar__logo-accent">Folio</span>
           </h1>
         </div>
 
@@ -138,6 +138,11 @@ export default function AppLayout() {
             </div>
           </div>
           <button className="sidebar__logout" onClick={handleLogout}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
             Sign Out
           </button>
         </div>
@@ -158,7 +163,7 @@ export default function AppLayout() {
         ))}
         {/* More button opens sidebar with logout */}
         <button className="bottom-nav__link" onClick={() => setSidebarOpen(true)}>
-          <span className="bottom-nav__link-icon">☰</span>
+          <span className="bottom-nav__link-icon">â˜°</span>
           More
         </button>
       </nav>

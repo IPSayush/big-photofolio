@@ -1,5 +1,5 @@
-/**
- * Login Page — email + password authentication.
+﻿/**
+ * Login Page â€” email + password authentication.
  */
 
 import { useState } from 'react';
@@ -12,8 +12,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
-
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +22,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(form.email, form.password);
+      const data = await login(form.email, form.password);
+      // Admin users should be redirected to admin dashboard, not photographer dashboard
+      const isAdminUser = data.user?.role === 'admin';
+      const defaultPath = isAdminUser ? '/admin' : '/dashboard';
+      const from = location.state?.from?.pathname || defaultPath;
       navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
@@ -58,7 +60,7 @@ export default function LoginPage() {
             id="password"
             label="Password"
             type="password"
-            placeholder="••••••••"
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required

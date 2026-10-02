@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import GuestLayout from './components/layout/GuestLayout';
@@ -28,7 +29,7 @@ import ConsentPage from './pages/guest/ConsentPage';
 import GalleryPage from './pages/guest/GalleryPage';
 
 /**
- * App root — full route tree.
+ * App root â€” full route tree.
  */
 function App() {
   return (
@@ -73,12 +74,22 @@ function App() {
           </Route>
 
           {/* Redirects */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<SmartRedirect />} />
+          <Route path="*" element={<SmartRedirect />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
+}
+
+/**
+ * SmartRedirect — sends admin users to /admin, photographers to /dashboard.
+ */
+function SmartRedirect() {
+  const { user, isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 export default App;
