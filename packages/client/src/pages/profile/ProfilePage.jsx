@@ -50,24 +50,21 @@ export default function ProfilePage() {
     setMessage('');
 
     try {
-      // Step 1: Get presigned URL
-      const { data: presignData } = await api.post('/auth/avatar/presign', {
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Upload via server (server proxies to S3)
+      await api.post('/auth/avatar/upload', {
+        imageData: base64,
         contentType: file.type,
       });
 
-      // Step 2: Upload directly to S3
-      await fetch(presignData.data.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      });
-
-      // Step 3: Confirm upload to server
-      await api.patch('/auth/avatar', {
-        key: presignData.data.key,
-      });
-
-      // Step 4: Refresh user data
+      // Refresh user data
       await refreshUser();
       setMessage('Avatar updated successfully!');
     } catch (err) {

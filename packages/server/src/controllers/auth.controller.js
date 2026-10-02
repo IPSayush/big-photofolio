@@ -190,31 +190,58 @@ async function getMe(req, res, next) {
 }
 
 /**
- * POST /api/auth/avatar/presign
- * Generate presigned URL for avatar upload to S3.
+ * POST /api/auth/avatar/upload
+ * Upload avatar file directly through server to S3.
+ * Accepts base64 encoded image in request body.
  */
-async function getAvatarPresignUrl(req, res, next) {
+async function uploadAvatar(req, res, next) {
   try {
-    const { generatePresignedPutUrl } = require('../utils/s3');
+    const { getS3Client } = require('../utils/s3');
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
     const env = require('../config/env');
+    const User = require('../models/User');
     const userId = req.user.userId;
-    const contentType = req.body.contentType || 'image/jpeg';
+    const { imageData, contentType } = req.body;
+
+    if (!imageData) {
+      return res.status(400).json({ error: 'imageData is required (base64).' });
+    }
 
     // Validate content type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(contentType)) {
+    const ct = contentType || 'image/jpeg';
+    if (!allowedTypes.includes(ct)) {
       return res.status(400).json({ error: 'Invalid content type. Use JPEG, PNG, or WebP.' });
     }
 
-    const ext = contentType.split('/')[1] === 'jpeg' ? 'jpg' : contentType.split('/')[1];
+    const ext = ct.split('/')[1] === 'jpeg' ? 'jpg' : ct.split('/')[1];
     const key = `avatars/${userId}.${ext}`;
     const bucket = env.aws.s3BucketOriginals;
 
-    const uploadUrl = await generatePresignedPutUrl(bucket, key, contentType, 300);
+    // Decode base64
+    const buffer = Buffer.from(imageData, 'base64');
+
+    // Check size (max 5MB)
+    if (buffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image must be less than 5MB.' });
+    }
+
+    // Upload to S3
+    const s3 = getS3Client();
+    await s3.send(new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: ct,
+    }));
+
+    // Store S3 key as avatarUrl (will be resolved to signed URL in getMe)
+    const user = await User.findByIdAndUpdate(userId, { avatarUrl: key }, { new: true });
 
     res.status(200).json({
       success: true,
-      data: { uploadUrl, key, bucket },
+      message: 'Avatar uploaded successfully.',
+      data: { user },
     });
   } catch (err) {
     next(err);
@@ -303,7 +330,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getMe,
-  getAvatarPresignUrl,
+  uploadAvatar,
   updateAvatar,
   updateUserProfile,
 };

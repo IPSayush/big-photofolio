@@ -87,11 +87,11 @@ router.get(
   authController.getMe
 );
 
-// Avatar presigned URL for upload
+// Avatar upload (server-proxy to S3)
 router.post(
-  '/avatar/presign',
+  '/avatar/upload',
   authenticate,
-  authController.getAvatarPresignUrl
+  authController.uploadAvatar
 );
 
 // Update avatar after S3 upload
