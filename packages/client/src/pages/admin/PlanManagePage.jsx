@@ -1,12 +1,12 @@
 /**
- * Plan Management Page \u2014 FR-PLAN-001, API-010.
+ * Plan Management Page - FR-PLAN-001, API-010.
  * Admin can create, edit, archive, and restore subscription plans.
- * No deployment needed \u2014 changes take effect immediately.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/client';
 import { Card, Button, Spinner, Badge, Modal, Input } from '../../components/common';
+import { CheckCircle, XCircle, CalendarDays, Camera, Users, HardDrive, Link2 } from '../../components/Icons';
 import '../dashboard/dashboard.css';
 import './admin.css';
 
@@ -67,6 +67,10 @@ function toForm(plan) {
   };
 }
 
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
+}
+
 export default function PlanManagePage() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +82,8 @@ export default function PlanManagePage() {
   const [togglingId, setTogglingId] = useState(null);
 
   const fetchPlans = useCallback(() => {
-    setLoading(true);
     api.get('/admin/plans')
-      .then(({ data }) => setPlans(data.plans))
+      .then(({ data }) => setPlans(data.plans || data))
       .finally(() => setLoading(false));
   }, []);
 
@@ -130,7 +133,8 @@ export default function PlanManagePage() {
       if (data?.details?.length) {
         setFormError(data.details.map((d) => d.message).join(' \u2022 '));
       } else {
-        setFormError(data?.error || 'Save failed. Please try again.');
+        const errData = data?.error;
+        setFormError(typeof errData === 'string' ? errData : errData?.message || 'Save failed.');
       }
     } finally {
       setSaving(false);
@@ -159,43 +163,87 @@ export default function PlanManagePage() {
         <Button id="btn-create-plan" variant="primary" onClick={openCreate}>+ New Plan</Button>
       </div>
 
-      <Card>
-        <Card.Body>
-          <div className="plan-admin-table">
-            <div className="plan-admin-table__header">
-              <span>Name</span>
-              <span>Price</span>
-              <span>Events / Photos</span>
-              <span>Storage</span>
-              <span>Trial</span>
-              <span>Status</span>
-              <span>Actions</span>
+      {plans.length === 0 ? (
+        <Card>
+          <Card.Body>
+            <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
+              <div className="empty-state__icon"><CalendarDays size={48} /></div>
+              <p className="empty-state__desc">No plans yet. Create your first plan.</p>
             </div>
-            {plans.length === 0 && (
-              <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
-                <div className="empty-state__icon">📋</div>
-                <p className="empty-state__desc">No plans yet. Create your first plan.</p>
-              </div>
-            )}
-            {plans.map((plan) => (
-              <div
-                key={plan._id}
-                className={`plan-admin-table__row${!plan.isActive ? ' plan-admin-table__row--archived' : ''}`}
-              >
-                <span className="plan-admin-table__name">{plan.name}</span>
-                <span>
-                  \u20b9{plan.pricing.amount}
-                  <span className="plan-admin-table__interval">/{plan.pricing.interval === 'yearly' ? 'yr' : 'mo'}</span>
-                </span>
-                <span>{plan.quotas.maxEvents} / {plan.quotas.maxPhotosPerEvent.toLocaleString()}</span>
-                <span>{Math.round(plan.quotas.maxStorageBytes / GB)} GB</span>
-                <span>{plan.trialDays > 0 ? `${plan.trialDays}d` : '\u2014'}</span>
-                <span>
+          </Card.Body>
+        </Card>
+      ) : (
+        <div className="plan-cards-grid">
+          {plans.map((plan) => (
+            <Card key={plan._id} className={`plan-card ${!plan.isActive ? 'plan-card--archived' : ''}`}>
+              <Card.Body>
+                {/* Header */}
+                <div className="plan-card__header">
+                  <div>
+                    <h3 className="plan-card__name">{plan.name}</h3>
+                    {plan.description && <p className="plan-card__desc">{plan.description}</p>}
+                  </div>
                   <Badge variant={plan.isActive ? 'success' : 'warning'}>
                     {plan.isActive ? 'Active' : 'Archived'}
                   </Badge>
-                </span>
-                <span className="plan-admin-table__actions">
+                </div>
+
+                {/* Price */}
+                <div className="plan-card__price">
+                  <span className="plan-card__amount">{formatCurrency(plan.pricing.amount)}</span>
+                  <span className="plan-card__interval">/{plan.pricing.interval === 'yearly' ? 'year' : 'month'}</span>
+                </div>
+
+                {/* Quotas */}
+                <div className="plan-card__quotas">
+                  <div className="plan-card__quota-item">
+                    <CalendarDays size={16} />
+                    <span className="plan-card__quota-label">Events</span>
+                    <span className="plan-card__quota-value">{plan.quotas.maxEvents}</span>
+                  </div>
+                  <div className="plan-card__quota-item">
+                    <Camera size={16} />
+                    <span className="plan-card__quota-label">Photos/Event</span>
+                    <span className="plan-card__quota-value">{plan.quotas.maxPhotosPerEvent.toLocaleString()}</span>
+                  </div>
+                  <div className="plan-card__quota-item">
+                    <HardDrive size={16} />
+                    <span className="plan-card__quota-label">Storage</span>
+                    <span className="plan-card__quota-value">{Math.round(plan.quotas.maxStorageBytes / GB)} GB</span>
+                  </div>
+                  <div className="plan-card__quota-item">
+                    <Users size={16} />
+                    <span className="plan-card__quota-label">Guests/Event</span>
+                    <span className="plan-card__quota-value">{plan.quotas.maxGuestsPerEvent.toLocaleString()}</span>
+                  </div>
+                  <div className="plan-card__quota-item">
+                    <Link2 size={16} />
+                    <span className="plan-card__quota-label">AI Matches/mo</span>
+                    <span className="plan-card__quota-value">{plan.quotas.maxAiMatchesPerMonth.toLocaleString()}</span>
+                  </div>
+                  {plan.trialDays > 0 && (
+                    <div className="plan-card__quota-item">
+                      <CheckCircle size={16} />
+                      <span className="plan-card__quota-label">Free Trial</span>
+                      <span className="plan-card__quota-value">{plan.trialDays} days</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Features */}
+                {plan.features && (
+                  <div className="plan-card__features">
+                    {Object.entries(plan.features).map(([key, enabled]) => (
+                      <div key={key} className={`plan-card__feature ${enabled ? '' : 'plan-card__feature--disabled'}`}>
+                        {enabled ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                        <span>{key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="plan-card__actions">
                   <Button id={`btn-edit-${plan._id}`} variant="secondary" size="sm" onClick={() => openEdit(plan)}>Edit</Button>
                   <Button
                     id={`btn-toggle-${plan._id}`}
@@ -206,12 +254,12 @@ export default function PlanManagePage() {
                   >
                     {plan.isActive ? 'Archive' : 'Restore'}
                   </Button>
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card.Body>
-      </Card>
+                </div>
+              </Card.Body>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Modal
         isOpen={!!modal}
@@ -232,7 +280,7 @@ export default function PlanManagePage() {
 
           <div className="plan-form__section-title">Pricing</div>
           <div className="plan-form__row">
-            <Input id="pf-amount" label="Amount (\u20b9)" type="number" min="0" value={form.pricing.amount} onChange={(e) => setField('pricing.amount', e.target.value)} required />
+            <Input id="pf-amount" label="Amount (INR)" type="number" min="0" value={form.pricing.amount} onChange={(e) => setField('pricing.amount', e.target.value)} required />
             <div className="plan-form__field">
               <label className="input__label" htmlFor="pf-interval">Interval</label>
               <select id="pf-interval" className="plan-form__select" value={form.pricing.interval} onChange={(e) => setField('pricing.interval', e.target.value)}>
