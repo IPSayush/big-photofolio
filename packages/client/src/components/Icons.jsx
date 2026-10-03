@@ -113,13 +113,13 @@ export function Star(p) {
 }
 
 export function Download(p) {
-  return <svg {...s(p)} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+  return <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
 }
 
 export function ChevronLeft(p) {
-  return <svg {...s(p)} viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>;
+  return <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
 }
 
 export function ChevronRight(p) {
-  return <svg {...s(p)} viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>;
+  return <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
 }
