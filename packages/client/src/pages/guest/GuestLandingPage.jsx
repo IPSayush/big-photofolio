@@ -139,7 +139,7 @@ export default function GuestLandingPage() {
             gap: 'var(--space-3)',
           }}>
             {photos.map((photo, i) => {
-              const imgUrl = photo.derivatives?.web || photo.derivatives?.thumbnail || '';
+              const imgUrl = photo.derivatives?.web || photo.derivatives?.thumbnail || photo.derivatives?.watermarked || photo.derivatives?.original || '';
               return (
                 <div key={photo.id || i} style={{
                   aspectRatio: '1',

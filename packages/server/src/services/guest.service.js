@@ -278,13 +278,13 @@ async function getBrowsableGallery(eventId, { page = 1, limit = 20 } = {}) {
   const skip = (page - 1) * limit;
 
   const [photos, total] = await Promise.all([
-    Photo.find({ eventId, status: PHOTO_STATUS.PROCESSED })
-      .select('-s3OriginalKey -hash')
+    Photo.find({ eventId, status: { $in: [PHOTO_STATUS.PROCESSED, 'uploaded', 'confirmed'] } })
+      .select('-hash')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Photo.countDocuments({ eventId, status: PHOTO_STATUS.PROCESSED }),
+    Photo.countDocuments({ eventId, status: { $in: [PHOTO_STATUS.PROCESSED, 'uploaded', 'confirmed'] } }),
   ]);
 
   // Attach signed derivative URLs â€” FR-GALLERY-003
@@ -296,6 +296,14 @@ async function getBrowsableGallery(eventId, { page = 1, limit = 20 } = {}) {
 
       for (const d of derivatives) {
         derivativeUrls[d.type] = await generatePresignedGetUrl(derivativeBucket, d.s3Key);
+      }
+
+      // If no derivatives exist (unprocessed), use original S3 URL
+      if (Object.keys(derivativeUrls).length === 0 && photo.s3OriginalKey) {
+        const originalBucket = env.aws.s3BucketOriginals || env.aws.s3Bucket;
+        derivativeUrls.original = await generatePresignedGetUrl(originalBucket, photo.s3OriginalKey);
+        derivativeUrls.thumbnail = derivativeUrls.original; // Fallback
+        derivativeUrls.watermarked = derivativeUrls.original;
       }
 
       return {
