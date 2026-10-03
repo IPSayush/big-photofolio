@@ -142,6 +142,39 @@ async function register(data, reqMeta = {}) {
 
   logger.info({ userId: user._id, tenantId: tenant._id }, 'User registered successfully');
 
+  // AUTO-SUBSCRIBE to Free Trial plan if one exists
+  try {
+    const Plan = require('../models/Plan');
+    const Subscription = require('../models/Subscription');
+    const freePlan = await Plan.findOne({ isActive: true, 'pricing.amount': 0 }).sort({ sortOrder: 1 });
+    if (freePlan) {
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      let trialEnd = null;
+      let status = 'active';
+      if (freePlan.trialDays > 0) {
+        status = 'trialing';
+        trialEnd = new Date(now.getTime() + freePlan.trialDays * 86400000);
+      }
+      await Subscription.create({
+        tenantId: tenant._id,
+        planId: freePlan._id,
+        status,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        trialEnd,
+      });
+      // Link plan to tenant
+      tenant.planId = freePlan._id;
+      await tenant.save();
+      logger.info({ tenantId: tenant._id, planId: freePlan._id.toString() }, 'Auto-subscribed to Free Trial');
+    }
+  } catch (autoSubErr) {
+    // Non-fatal: user is registered, just no auto-subscription
+    logger.warn({ err: autoSubErr }, 'Auto-subscription to Free Trial failed (non-fatal)');
+  }
+
   return {
     user: user.toJSON(),
     tenant: tenant.toJSON(),

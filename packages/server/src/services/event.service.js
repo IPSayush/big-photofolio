@@ -12,6 +12,9 @@
  */
 
 const Event = require('../models/Event');
+const Photo = require('../models/Photo');
+const Guest = require('../models/Guest');
+const Match = require('../models/Match');
 const Plan = require('../models/Plan');
 const Tenant = require('../models/Tenant');
 const { AppError } = require('../middleware/errorHandler');
@@ -132,7 +135,30 @@ async function getEvent(tenantId, eventId) {
     throw new AppError('Event not found.', 404, 'EVENT_NOT_FOUND');
   }
 
-  return { event: event.toJSON() };
+  // Compute event stats
+  const [photoCount, processedPhotoCount, failedPhotoCount, guestCount, matchCount, storageAgg] = await Promise.all([
+    Photo.countDocuments({ eventId }),
+    Photo.countDocuments({ eventId, status: 'processed' }),
+    Photo.countDocuments({ eventId, status: 'failed' }),
+    Guest.countDocuments({ eventId, status: 'active' }),
+    Match.countDocuments({ eventId }),
+    Photo.aggregate([
+      { $match: { eventId: event._id } },
+      { $group: { _id: null, total: { $sum: '$sizeBytes' } } },
+    ]),
+  ]);
+
+  const eventJson = event.toJSON();
+  eventJson.stats = {
+    photoCount,
+    processedPhotoCount,
+    failedPhotoCount,
+    guestCount,
+    matchCount,
+    storageUsedBytes: storageAgg[0]?.total || 0,
+  };
+
+  return { event: eventJson };
 }
 
 /**

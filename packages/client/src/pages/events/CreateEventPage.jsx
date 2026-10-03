@@ -47,7 +47,13 @@ export default function CreateEventPage() {
       if (details && details.length) {
         setError(details.map((d) => `${d.field}: ${d.message}`).join('; '));
       } else {
-        setError(err.response?.data?.error || 'Failed to create event.');
+        const errCode = err.response?.data?.code;
+        const errMsg = err.response?.data?.error;
+        if (errCode === 'NO_ACTIVE_PLAN' || errCode === 'QUOTA_EXCEEDED') {
+          setError(typeof errMsg === 'string' ? errMsg + ' Go to Plans page to subscribe.' : 'Please subscribe to a plan first.');
+        } else {
+          setError(typeof errMsg === 'string' ? errMsg : errMsg?.message || 'Failed to create event.');
+        }
       }
     } finally {
       setLoading(false);
