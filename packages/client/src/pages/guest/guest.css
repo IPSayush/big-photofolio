@@ -269,3 +269,42 @@
   text-align: center;
   margin-top: var(--space-4);
 }
+
+
+/* Lightbox mobile responsive */
+@media (max-width: 768px) {
+  .lightbox__content {
+    max-width: 95vw;
+    padding: 0;
+  }
+  .lightbox__content img {
+    max-height: 70vh;
+  }
+  .lightbox button[aria-label='Previous'],
+  .lightbox button[aria-label='Next'] {
+    display: none;
+  }
+}
+
+/* Download button in gallery grid */
+.gallery__item-download {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  cursor: pointer;
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery__item:hover .gallery__item-download {
+  opacity: 1;
+}

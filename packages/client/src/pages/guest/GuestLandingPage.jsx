@@ -1,18 +1,18 @@
 /**
  * Guest Landing Page — QR scan landing.
- * QR-A: Public event → browse all event photos
+ * QR-A: Public event → browse all event photos with lightbox + download
  * QR-B: Consent required → link to consent page
  */
 
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, Badge, Spinner, Button } from '../../components/common';
+import { Download, X, ChevronLeft, ChevronRight } from '../../components/Icons';
 import './guest.css';
 
 export default function GuestLandingPage() {
   const { token } = useParams();
-  const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [qrType, setQrType] = useState(null);
   const [photos, setPhotos] = useState([]);
@@ -21,13 +21,15 @@ export default function GuestLandingPage() {
   const [error, setError] = useState('');
   const [pagination, setPagination] = useState(null);
 
+  // Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const [downloading, setDownloading] = useState(false);
+
   useEffect(() => {
     api.get(`/guest/events/${token}`)
       .then(({ data }) => {
         setEvent(data.event);
         setQrType(data.qrType);
-        
-        // For QR-A, load browsable gallery
         if (data.qrType === 'A') {
           loadPhotos();
         }
@@ -38,17 +40,59 @@ export default function GuestLandingPage() {
 
   const loadPhotos = (page = 1) => {
     setPhotosLoading(true);
-    // Correct endpoint: /guest/events/:token/gallery (NOT /photos)
-    api.get(`/guest/events/${token}/gallery?page=${page}&limit=20`)
+    api.get(`/guest/events/${token}/gallery?page=${page}&limit=50`)
       .then(({ data }) => {
         setPhotos(prev => page === 1 ? (data.photos || []) : [...prev, ...(data.photos || [])]);
         setPagination(data.pagination || null);
       })
-      .catch((err) => {
-        console.error('Gallery load error:', err);
-        // Don't show error to user - photos may just not be processed yet
-      })
+      .catch(() => {})
       .finally(() => setPhotosLoading(false));
+  };
+
+  // Lightbox navigation
+  const openLightbox = (index) => setLightboxIndex(index);
+  const closeLightbox = () => setLightboxIndex(-1);
+  const goNext = useCallback(() => {
+    if (lightboxIndex < photos.length - 1) setLightboxIndex(lightboxIndex + 1);
+  }, [lightboxIndex, photos.length]);
+  const goPrev = useCallback(() => {
+    if (lightboxIndex > 0) setLightboxIndex(lightboxIndex - 1);
+  }, [lightboxIndex]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (lightboxIndex < 0) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIndex, goNext, goPrev]);
+
+  // Download photo
+  const handleDownload = async (photo) => {
+    const url = photo.derivatives?.original || photo.derivatives?.watermarked || photo.derivatives?.web || photo.derivatives?.thumbnail;
+    if (!url) return;
+    setDownloading(true);
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = photo.originalFileName || `photo-${photo.id}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (loading) return <div className="page-center"><Spinner size="lg" /></div>;
@@ -56,7 +100,7 @@ export default function GuestLandingPage() {
   if (error) {
     return (
       <div className="guest-error">
-        <div className="guest-error__icon">❌</div>
+        <div className="guest-error__icon">😕</div>
         <h2>Event Not Found</h2>
         <p>{error}</p>
       </div>
@@ -69,7 +113,8 @@ export default function GuestLandingPage() {
     : 'Date not set';
   
   const photoCount = event.stats?.photoCount || 0;
-  const processedCount = event.stats?.processedPhotoCount || 0;
+  const currentPhoto = lightboxIndex >= 0 ? photos[lightboxIndex] : null;
+  const currentPhotoUrl = currentPhoto?.derivatives?.original || currentPhoto?.derivatives?.watermarked || currentPhoto?.derivatives?.web || currentPhoto?.derivatives?.thumbnail || '';
 
   return (
     <div className="guest-landing">
@@ -87,7 +132,7 @@ export default function GuestLandingPage() {
         <Card.Body>
           {qrType === 'B' ? (
             <>
-              <h2 style={{marginBottom: 'var(--space-2)'}}>📷 Find Your Photos</h2>
+              <h2>📸 Find Your Photos</h2>
               <p style={{color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)'}}>
                 Upload a selfie and our AI will find all photos you appear in!
               </p>
@@ -99,15 +144,13 @@ export default function GuestLandingPage() {
             </>
           ) : (
             <>
-              <h2 style={{marginBottom: 'var(--space-2)'}}>📸 Event Gallery</h2>
+              <h2>📷 Event Gallery</h2>
               <p style={{color: 'var(--color-text-secondary)'}}>
                 {photos.length > 0 
-                  ? `Showing ${photos.length} of ${photoCount} event photos`
-                  : photoCount > 0 && processedCount === 0
-                    ? `${photoCount} photos uploaded — they are being processed. Please check back in a few minutes!`
-                    : photoCount > 0
-                      ? `This event has ${photoCount} photos. Loading gallery...`
-                      : 'Photos are being uploaded. Check back soon!'
+                  ? `Showing ${photos.length} of ${photoCount} event photos — click any photo to view full size`
+                  : photoCount > 0
+                    ? `This event has ${photoCount} photos. Loading gallery...`
+                    : 'Photos are being uploaded. Check back soon!'
                 }
               </p>
             </>
@@ -127,41 +170,36 @@ export default function GuestLandingPage() {
         </div>
       </div>
 
-      {/* Photo grid for QR-A */}
+      {/* Photo Grid */}
       {qrType === 'A' && photos.length > 0 && (
         <div style={{marginTop: 'var(--space-6)'}}>
           <h3 style={{marginBottom: 'var(--space-4)', fontWeight: 600, fontSize: 'var(--font-size-lg)'}}>
             🖼️ Gallery
           </h3>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: 'var(--space-3)',
-          }}>
+          <div className="gallery__grid">
             {photos.map((photo, i) => {
-              const imgUrl = photo.derivatives?.web || photo.derivatives?.thumbnail || photo.derivatives?.watermarked || photo.derivatives?.original || '';
+              const thumbUrl = photo.derivatives?.thumbnail || photo.derivatives?.web || photo.derivatives?.watermarked || photo.derivatives?.original || '';
               return (
-                <div key={photo.id || i} style={{
-                  aspectRatio: '1',
-                  borderRadius: 'var(--radius-md)',
-                  overflow: 'hidden',
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                }}>
-                  {imgUrl ? (
-                    <img 
-                      src={imgUrl} 
-                      alt={`Photo ${i + 1}`}
-                      style={{width: '100%', height: '100%', objectFit: 'cover'}}
-                      loading="lazy"
-                    />
+                <div
+                  key={photo.id || i}
+                  className="gallery__item"
+                  onClick={() => openLightbox(i)}
+                >
+                  {thumbUrl ? (
+                    <>
+                      <img src={thumbUrl} alt={photo.originalFileName || `Photo ${i + 1}`} loading="lazy" />
+                      <div className="gallery__item-overlay">
+                        <span style={{color: '#fff', fontSize: '1.5rem'}}>🔍</span>
+                      </div>
+                    </>
                   ) : (
                     <div style={{
                       width: '100%', height: '100%', 
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)'
+                      color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)',
+                      background: 'var(--color-surface)',
                     }}>
-                      Processing...
+                      Loading...
                     </div>
                   )}
                 </div>
@@ -184,15 +222,14 @@ export default function GuestLandingPage() {
         </div>
       )}
 
-      {/* Processing notice for QR-A when photos uploaded but not processed */}
+      {/* Processing notice */}
       {qrType === 'A' && photos.length === 0 && photoCount > 0 && !photosLoading && (
         <Card style={{marginTop: 'var(--space-6)', textAlign: 'center'}}>
           <Card.Body>
             <div style={{fontSize: '2rem', marginBottom: 'var(--space-3)'}}>⏳</div>
             <h3 style={{marginBottom: 'var(--space-2)'}}>Photos Processing</h3>
             <p style={{color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)'}}>
-              {photoCount} photos have been uploaded but are still being processed. 
-              This usually takes a few minutes.
+              {photoCount} photos have been uploaded and are being prepared.
             </p>
             <Button variant="secondary" onClick={() => loadPhotos(1)}>
               🔄 Refresh Gallery
@@ -205,6 +242,75 @@ export default function GuestLandingPage() {
         <div style={{textAlign: 'center', padding: 'var(--space-8)'}}>
           <Spinner size="md" />
           <p style={{marginTop: 'var(--space-3)', color: 'var(--color-text-muted)'}}>Loading photos...</p>
+        </div>
+      )}
+
+      {/* ======= LIGHTBOX ======= */}
+      {lightboxIndex >= 0 && currentPhoto && (
+        <div className="lightbox" onClick={closeLightbox}>
+          <div className="lightbox__content" onClick={(e) => e.stopPropagation()}>
+            {/* Close button */}
+            <button className="lightbox__close" onClick={closeLightbox} aria-label="Close">
+              <X size={28} />
+            </button>
+
+            {/* Navigation arrows */}
+            {lightboxIndex > 0 && (
+              <button
+                onClick={goPrev}
+                style={{
+                  position: 'absolute', left: '-50px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                  width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: '#fff', backdropFilter: 'blur(4px)',
+                }}
+                aria-label="Previous"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+            {lightboxIndex < photos.length - 1 && (
+              <button
+                onClick={goNext}
+                style={{
+                  position: 'absolute', right: '-50px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                  width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: '#fff', backdropFilter: 'blur(4px)',
+                }}
+                aria-label="Next"
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
+
+            {/* Main image */}
+            <img src={currentPhotoUrl} alt={currentPhoto.originalFileName || 'Photo'} />
+
+            {/* Actions bar */}
+            <div className="lightbox__actions">
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-4)' }}>
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 'var(--font-size-sm)' }}>
+                  {lightboxIndex + 1} / {photos.length}
+                </span>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleDownload(currentPhoto)}
+                  loading={downloading}
+                  style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(4px)' }}
+                >
+                  <Download size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                  Download
+                </Button>
+              </div>
+              {currentPhoto.originalFileName && (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-2)' }}>
+                  {currentPhoto.originalFileName}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

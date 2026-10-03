@@ -111,3 +111,15 @@ export function MoreHorizontal(p) {
 export function Star(p) {
   return <Icon {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></Icon>;
 }
+
+export function Download(p) {
+  return <svg {...s(p)} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+}
+
+export function ChevronLeft(p) {
+  return <svg {...s(p)} viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>;
+}
+
+export function ChevronRight(p) {
+  return <svg {...s(p)} viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>;
+}
