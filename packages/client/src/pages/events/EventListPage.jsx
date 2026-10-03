@@ -50,7 +50,7 @@ export default function EventListPage() {
                   </div>
                   <p className="event-card__venue">{event.venue}</p>
                   <p className="event-card__date">
-                    {new Date(event.dateStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {event.date?.start ? new Date(event.date.start).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date not set'}
                   </p>
                   <div className="event-card__stats">
                     <span><Camera size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{event.stats?.photoCount || 0}</span>

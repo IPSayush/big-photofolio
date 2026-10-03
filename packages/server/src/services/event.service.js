@@ -110,7 +110,16 @@ async function listEvents(tenantId, filters = {}) {
   ]);
 
   return {
-    events: events.map((e) => e.toJSON()),
+    events: await Promise.all(events.map(async (e) => {
+      const ej = e.toJSON();
+      const [photoCount, guestCount, matchCount] = await Promise.all([
+        Photo.countDocuments({ eventId: e._id }),
+        Guest.countDocuments({ eventId: e._id, status: 'active' }),
+        Match.countDocuments({ eventId: e._id }),
+      ]);
+      ej.stats = { photoCount, guestCount, matchCount };
+      return ej;
+    })),
     pagination: {
       page,
       limit,
