@@ -1,5 +1,5 @@
-﻿/**
- * Event Controller â€” thin HTTP layer for event operations.
+/**
+ * Event Controller — thin HTTP layer for event operations.
  * FR-EVENT-001 through FR-EVENT-006.
  *
  * Routes: /api/events/*
@@ -146,7 +146,7 @@ async function deleteEvent(req, res, next) {
       auditParamsFromReq(req)
     );
 
-    res.status(202).json({
+    res.status(200).json({
       success: true,
       message: result.message,
       data: result,
