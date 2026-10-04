@@ -1,7 +1,7 @@
 /**
- * Guest Landing Page — QR scan landing.
- * QR-A: Public event → browse all event photos with lightbox + download
- * QR-B: Consent required → link to consent page
+ * Guest Landing Page â€” QR scan landing.
+ * QR-A: Public event â†’ browse all event photos with lightbox + download
+ * QR-B: Consent required â†’ link to consent page
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -71,27 +71,24 @@ export default function GuestLandingPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [lightboxIndex, goNext, goPrev]);
 
-  // Download photo
+  // Download photo via server proxy (avoids S3 CORS issues)
   const handleDownload = async (photo) => {
-    const url = photo.derivatives?.original || photo.derivatives?.watermarked || photo.derivatives?.web || photo.derivatives?.thumbnail;
-    if (!url) return;
     setDownloading(true);
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const downloadUrl = `/api/guest/photos/${photo.id}/download`;
       const a = document.createElement('a');
-      a.href = blobUrl;
+      a.href = downloadUrl;
       a.download = photo.originalFileName || `photo-${photo.id}.jpg`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
     } catch {
-      // Fallback: open in new tab
-      window.open(url, '_blank');
+      // Fallback
+      const url = photo.derivatives?.original || photo.derivatives?.watermarked || '';
+      if (url) window.open(url, '_blank');
     } finally {
-      setDownloading(false);
+      setTimeout(() => setDownloading(false), 1000);
     }
   };
 
@@ -100,7 +97,7 @@ export default function GuestLandingPage() {
   if (error) {
     return (
       <div className="guest-error">
-        <div className="guest-error__icon">😕</div>
+        <div className="guest-error__icon">ðŸ˜•</div>
         <h2>Event Not Found</h2>
         <p>{error}</p>
       </div>
@@ -122,9 +119,9 @@ export default function GuestLandingPage() {
         <Badge variant="success">Live Event</Badge>
         <h1 className="guest-landing__title">{event.name || event.title}</h1>
         {(event.venue || event.location) && (
-          <p className="guest-landing__venue">📍 {event.venue || event.location}</p>
+          <p className="guest-landing__venue">ðŸ“ {event.venue || event.location}</p>
         )}
-        <p className="guest-landing__date">📅 {formattedDate}</p>
+        <p className="guest-landing__date">ðŸ“… {formattedDate}</p>
       </div>
 
       {/* CTA Card */}
@@ -132,22 +129,22 @@ export default function GuestLandingPage() {
         <Card.Body>
           {qrType === 'B' ? (
             <>
-              <h2>📸 Find Your Photos</h2>
+              <h2>ðŸ“¸ Find Your Photos</h2>
               <p style={{color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)'}}>
                 Upload a selfie and our AI will find all photos you appear in!
               </p>
               <Link to={`/guest/consent/${token}`} style={{display:'block', width:'100%', textDecoration:'none'}}>
                 <Button variant="primary" size="lg" fullWidth>
-                  Get My Photos →
+                  Get My Photos â†’
                 </Button>
               </Link>
             </>
           ) : (
             <>
-              <h2>📷 Event Gallery</h2>
+              <h2>ðŸ“· Event Gallery</h2>
               <p style={{color: 'var(--color-text-secondary)'}}>
                 {photos.length > 0 
-                  ? `Showing ${photos.length} of ${photoCount} event photos — click any photo to view full size`
+                  ? `Showing ${photos.length} of ${photoCount} event photos â€” click any photo to view full size`
                   : photoCount > 0
                     ? `This event has ${photoCount} photos. Loading gallery...`
                     : 'Photos are being uploaded. Check back soon!'
@@ -174,7 +171,7 @@ export default function GuestLandingPage() {
       {qrType === 'A' && photos.length > 0 && (
         <div style={{marginTop: 'var(--space-6)'}}>
           <h3 style={{marginBottom: 'var(--space-4)', fontWeight: 600, fontSize: 'var(--font-size-lg)'}}>
-            🖼️ Gallery
+            ðŸ–¼ï¸ Gallery
           </h3>
           <div className="gallery__grid">
             {photos.map((photo, i) => {
@@ -189,7 +186,7 @@ export default function GuestLandingPage() {
                     <>
                       <img src={thumbUrl} alt={photo.originalFileName || `Photo ${i + 1}`} loading="lazy" />
                       <div className="gallery__item-overlay">
-                        <span style={{color: '#fff', fontSize: '1.5rem'}}>🔍</span>
+                        <span style={{color: '#fff', fontSize: '1.5rem'}}>ðŸ”</span>
                       </div>
                     </>
                   ) : (
@@ -226,13 +223,13 @@ export default function GuestLandingPage() {
       {qrType === 'A' && photos.length === 0 && photoCount > 0 && !photosLoading && (
         <Card style={{marginTop: 'var(--space-6)', textAlign: 'center'}}>
           <Card.Body>
-            <div style={{fontSize: '2rem', marginBottom: 'var(--space-3)'}}>⏳</div>
+            <div style={{fontSize: '2rem', marginBottom: 'var(--space-3)'}}>â³</div>
             <h3 style={{marginBottom: 'var(--space-2)'}}>Photos Processing</h3>
             <p style={{color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)'}}>
               {photoCount} photos have been uploaded and are being prepared.
             </p>
             <Button variant="secondary" onClick={() => loadPhotos(1)}>
-              🔄 Refresh Gallery
+              ðŸ”„ Refresh Gallery
             </Button>
           </Card.Body>
         </Card>
