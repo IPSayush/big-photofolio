@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, StatCard, Badge, Button, Spinner } from '../../components/common';
-import { Camera, CheckCircle, XCircle, Users, Link2, HardDrive, Upload, AlertCircle } from '../../components/Icons';
+import { Camera, CheckCircle, XCircle, Users, Link2, HardDrive, Upload, AlertCircle, Download } from '../../components/Icons';
 import '../dashboard/dashboard.css';
 import './events.css';
 
@@ -62,7 +62,7 @@ export default function EventDetailPage() {
     <div className="event-detail">
       <div className="page-header">
         <div>
-          <Link to="/events" className="event-detail__back">← Back to Events</Link>
+          <Link to="/events" className="event-detail__back">â† Back to Events</Link>
           <h1 className="page-title">{event.name}</h1>
         </div>
         <Badge variant={event.status === 'active' ? 'success' : event.status === 'deleting' ? 'error' : 'default'} className="event-detail__badge">
@@ -105,26 +105,18 @@ export default function EventDetailPage() {
         <div className="event-detail__qr-section">
           <h2 className="section-title" style={{ marginTop: 'var(--space-6)' }}>QR Codes</h2>
           <div className="qr-grid">
-            <Card>
-              <Card.Body>
-                <h3 className="qr-card__title">QR-A: Browse Gallery</h3>
-                <p className="qr-card__desc">Guests can browse the event's public gallery</p>
-                <div className="qr-card__token">
-                  <code>{event.qrAToken}</code>
-                </div>
-                <p className="qr-card__url">{window.location.origin}/guest/events/{event.qrAToken}</p>
-              </Card.Body>
-            </Card>
-            <Card>
-              <Card.Body>
-                <h3 className="qr-card__title">QR-B: AI Face Matching</h3>
-                <p className="qr-card__desc">Guests consent and upload selfie for AI matching</p>
-                <div className="qr-card__token">
-                  <code>{event.qrBToken}</code>
-                </div>
-                <p className="qr-card__url">{window.location.origin}/guest/consent/{event.qrBToken}</p>
-              </Card.Body>
-            </Card>
+            <QRCard
+              title="QR-A: Browse Gallery"
+              desc="Guests scan to browse the event photo gallery"
+              url={${window.location.origin}/guest/events/}
+              filename={${event.name}-Gallery-QR.png}
+            />
+            <QRCard
+              title="QR-B: AI Face Match"
+              desc="Guests scan to consent and upload selfie for AI matching"
+              url={${window.location.origin}/guest/consent/}
+              filename={${event.name}-FaceMatch-QR.png}
+            />
           </div>
         </div>
       )}
@@ -196,6 +188,57 @@ export default function EventDetailPage() {
   );
 }
 
+
+function QRCard({ title, desc, url, filename }) {
+  const qrUrl = https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleDownloadQR = async () => {
+    try {
+      const res = await fetch(qrUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'qr-code.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(qrUrl, '_blank');
+    }
+  };
+
+  return (
+    <Card>
+      <Card.Body style={{ textAlign: 'center' }}>
+        <h3 className="qr-card__title">{title}</h3>
+        <p className="qr-card__desc">{desc}</p>
+        <div style={{ margin: 'var(--space-4) auto', padding: 'var(--space-3)', background: '#fff', borderRadius: 'var(--radius-lg)', display: 'inline-block', border: '1px solid var(--color-border)' }}>
+          <img src={qrUrl} alt={title} width={200} height={200} style={{ display: 'block' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', flexWrap: 'wrap', marginTop: 'var(--space-3)' }}>
+          <Button variant="primary" size="sm" onClick={handleDownloadQR}>
+            <Download size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />Download QR
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleCopyLink}>
+            <Link2 size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+            {copied ? 'Copied!' : 'Copy Link'}
+          </Button>
+        </div>
+        <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)', wordBreak: 'break-all' }}>{url}</p>
+      </Card.Body>
+    </Card>
+  );
+}
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
   const k = 1024;
