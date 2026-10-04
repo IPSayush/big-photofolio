@@ -409,3 +409,12 @@
 .user-dropdown__logout:hover {
   background: rgba(196, 91, 82, 0.06);
 }
+
+
+/* Avatar image in header */
+.app-header__avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}

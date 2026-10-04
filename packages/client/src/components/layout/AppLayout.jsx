@@ -86,7 +86,7 @@ export default function AppLayout() {
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             aria-label="User menu"
           >
-            {initials || '?'}
+            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="app-header__avatar-img" /> : (initials || '?')}
           </button>
 
           {userMenuOpen && (
@@ -132,7 +132,7 @@ export default function AppLayout() {
         <div className="sidebar__footer">
           <div className="sidebar__user" onClick={() => { setSidebarOpen(false); navigate("/profile"); }} style={{ cursor: "pointer" }}>
             <div className="sidebar__user-avatar">
-              {initials}
+              {user?.avatarUrl ? <img src={user.avatarUrl} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initials}
             </div>
             <div className="sidebar__user-info">
               <div className="sidebar__user-name">{user?.firstName} {user?.lastName}</div>

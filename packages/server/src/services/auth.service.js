@@ -451,7 +451,20 @@ async function getCurrentUser(userId) {
     tenant = await Tenant.findById(user.tenantId);
   }
 
-  return { user: user.toJSON(), tenant: tenant?.toJSON() || null };
+  const userData = user.toJSON();
+
+  // Resolve avatarUrl from S3 key to full URL
+  if (userData.avatarUrl && !userData.avatarUrl.startsWith('http')) {
+    try {
+      const env = require('../config/env');
+      const bucket = env.aws.s3BucketOriginals || env.aws.s3Bucket;
+      userData.avatarUrl = 'https://' + bucket + '.s3.' + (env.aws.region || 'ap-south-1') + '.amazonaws.com/' + userData.avatarUrl;
+    } catch (e) {
+      // If env fails, keep the key as-is
+    }
+  }
+
+  return { user: userData, tenant: tenant?.toJSON() || null };
 }
 
 module.exports = {
