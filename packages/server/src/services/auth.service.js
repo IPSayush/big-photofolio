@@ -453,14 +453,16 @@ async function getCurrentUser(userId) {
 
   const userData = user.toJSON();
 
-  // Resolve avatarUrl from S3 key to full URL
+  // Resolve avatarUrl from S3 key to presigned URL (bucket is private)
   if (userData.avatarUrl && !userData.avatarUrl.startsWith('http')) {
     try {
       const env = require('../config/env');
+      const { generatePresignedGetUrl } = require('../utils/s3');
       const bucket = env.aws.s3BucketOriginals || env.aws.s3Bucket;
-      userData.avatarUrl = 'https://' + bucket + '.s3.' + (env.aws.region || 'ap-south-1') + '.amazonaws.com/' + userData.avatarUrl;
+      userData.avatarUrl = await generatePresignedGetUrl(bucket, userData.avatarUrl, 86400);
     } catch (e) {
-      // If env fails, keep the key as-is
+      // If presigned URL fails, clear it so frontend shows initials
+      userData.avatarUrl = null;
     }
   }
 
