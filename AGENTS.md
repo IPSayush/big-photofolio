@@ -361,3 +361,26 @@ processes them. The worker:
 3. Resizes photos into thumbnails + web derivatives
 4. Updates photo status from 'uploaded' to 'processed'
 Without the worker running, photos stay permanently in 'uploaded' status.
+
+
+## QR-B Guest Flow Implementation (Updated)
+
+The QR-B (Face Recognition) guest flow has been redesigned:
+
+**Flow:** Scan QR-B → Auto-redirect → DPDP/GDPR consent popup → Live camera → Capture → AI match
+
+**Key implementation details:**
+- `GuestLandingPage.jsx`: Detects qrType='B' and auto-redirects to `/guest/consent/:token`
+- `ConsentPage.jsx`: 4-step flow (consent modal → camera → review → submit)
+- Camera uses browser `getUserMedia` API (no file upload/picker)
+- Circular face scanner UI with corner markers + scanning line animation
+- Real-time face analysis via `requestAnimationFrame` + skin-color heuristics
+- Selfie sent as base64 JPEG in JSON body (not multipart)
+- Face recognition provider: **PENDING** (currently mock)
+- DPDP Act 2023 + GDPR compliance badges shown in consent popup
+
+**Files involved:**
+- `packages/client/src/pages/guest/ConsentPage.jsx` - Main flow component
+- `packages/client/src/pages/guest/GuestLandingPage.jsx` - Auto-redirect logic
+- `packages/client/src/pages/guest/guest.css` - Scanner UI styles
+- `packages/server/src/routes/guest.routes.js` - Guest API endpoints

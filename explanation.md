@@ -242,12 +242,39 @@ Once an image reaches the worker:
 ---
 
 ### 4.3 Guest Face Matching & Discovery Flow
-1. Guest visits `https://app.photofolio.in/guest/:eventId` via venue QR code.
-2. Guest captures a live selfie using their smartphone camera.
-3. Client requests a presigned URL to upload the selfie as a `ReferenceFace`.
-4. Face matching service extracts the face vector embedding (128-d or 512-d float array).
-5. Vector similarity lookup matches the guest's embedding against the event's pre-computed `FaceDetection` index.
-6. Photos with confidence above `FACE_MATCH_THRESHOLD` (default 0.6) are linked via `Match` records and displayed in the guest's personalized gallery.
+
+**QR-A Path (Gallery Browse):**
+1. Guest scans QR-A → lands on GuestLandingPage with full event photo gallery.
+2. Can browse, view lightbox, and download photos. No consent required.
+
+**QR-B Path (Face Recognition - Redesigned):**
+1. Guest scans QR-B → GuestLandingPage detects qrType='B' → **auto-redirects** to ConsentPage (no intermediate landing).
+2. **DPDP/GDPR Consent Popup** appears as a modal overlay:
+   - Shield icon + "Data Privacy Consent" header + event name
+   - "What we collect" section: selfie photo, face embedding data
+   - "How we use it" section: match within this event only, never shared, withdrawal anytime
+   - Compliance badges: **DPDP Act 2023** + **GDPR Compliant**
+   - Single radio button to accept terms
+   - "Continue to Camera" button (disabled until accepted)
+3. On accept → POST `/api/guest/consent` → receives guestToken → **live camera opens immediately**.
+4. **Camera UI** (professional scanner, NOT fullscreen):
+   - Circular viewport (300px) with corner markers + scanning line animation
+   - Browser `getUserMedia` API opens front camera directly (no file picker)
+   - Video mirrored (`scaleX(-1)`) for natural selfie view
+   - **Real-time face analysis** (every frame via `requestAnimationFrame`):
+     - No face: "Position your face inside the frame"
+     - Too far: "Move closer to the camera" (skin ratio < 12%)
+     - Too close: "Move a bit further" (skin ratio > 65%)
+     - Off center: "Center your face in the frame" (left/right balance check)
+     - Low light: "Find better lighting" (brightness < 50)
+     - **Perfect**: "Perfect! Hold still and capture" (green glow + pulse)
+   - Detection uses skin color heuristics (RGB-based) at ~60fps
+5. Guest taps capture button → frame captured via Canvas API → camera stops.
+6. **Review screen**: circular preview (220px), "Retake" or "Find My Photos" buttons.
+7. On submit → POST `/api/guest/selfie` with base64 JPEG (no file upload).
+8. Face matching service extracts the face vector embedding (128-d or 512-d float array). **[Provider: PENDING]**
+9. Vector similarity lookup matches against event's `FaceDetection` index.
+10. Photos above `FACE_MATCH_THRESHOLD` (0.6) linked via `Match` records → personalized gallery.
 
 ---
 

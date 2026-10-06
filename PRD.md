@@ -183,8 +183,8 @@ The product is a multi-tenant SaaS platform that helps professional photographer
 4. System generates **two distinct QR codes**:
    - **QR-A (Gallery/Info Access):** guest views general event info and/or the full/browsable gallery (subject to event policy).
    - **QR-B (Find My Photos):** guest is routed to the consent + selfie-capture flow.
-5. Guest scans QR-B → sees a privacy notice/consent screen → must explicitly consent before any biometric-adjacent processing occurs.
-6. Guest captures or uploads a selfie → system validates image quality and detects a usable face before accepting it.
+5. Guest scans QR-B → **auto-redirected** to DPDP/GDPR consent popup (radio button accept) → must explicitly consent before camera opens.
+6. After consent: **live camera opens** with circular face scanner UI → real-time face analysis (position, lighting, distance) → guest captures selfie via tap → review screen with retake option → submit.
 7. Photographer conducts the event (out of system scope).
 8. After the event, photographer bulk-uploads event photos (MVP upload path).
 9. Photos land in private, tenant-isolated AWS S3 storage.
@@ -209,7 +209,10 @@ sequenceDiagram
     S-->>P: QR-A (Gallery), QR-B (Find My Photos)
     G->>S: Scan QR-B
     S-->>G: Privacy notice / consent
-    G->>S: Consent + selfie capture
+    G->>S: Accept DPDP/GDPR consent (radio button)
+    G->>G: Live camera + face scanner UI
+    G->>S: Capture selfie (base64 JPEG)
+    Note over G: Real-time: position, lighting, distance checks
     S->>S: Validate face presence/quality
     P->>S: Bulk upload event photos (post-event)
     S->>S3: Store originals (private)
@@ -269,7 +272,7 @@ sequenceDiagram
 | ID | Requirement | MVP/Phase |
 |---|---|---|
 | FR-GUEST-001 | Guest scanning QR-A shall land on event info / browsable gallery (if enabled by event policy), no consent required for browsing non-personalized content. | MVP |
-| FR-GUEST-002 | Guest scanning QR-B shall be shown a clear, plain-language privacy/biometric consent notice before any face processing occurs. | MVP |
+| FR-GUEST-002 | Guest scanning QR-B shall be **auto-redirected** to a DPDP/GDPR-compliant consent popup (modal overlay with radio-button accept). No intermediate landing page. Compliance badges shown: DPDP Act 2023 + GDPR. | MVP |
 | FR-GUEST-003 | Consent shall be explicitly recorded (timestamp, event ID, consent text version, guest token) before selfie capture is permitted. | MVP |
 | FR-GUEST-004 | Guest must be able to decline consent and still access the general gallery (if event policy allows) without penalty. | MVP |
 | FR-GUEST-005 | Guest can withdraw consent and request deletion of their reference selfie/face vector at any time (self-service or via support). | MVP |
@@ -278,8 +281,8 @@ sequenceDiagram
 ### 8.6 Selfie Capture & Validation
 | ID | Requirement | MVP/Phase |
 |---|---|---|
-| FR-SELFIE-001 | Guest can capture a selfie via device camera or upload an existing photo. | MVP |
-| FR-SELFIE-002 | System shall validate image quality (resolution, brightness/blur heuristics) before acceptance. | MVP |
+| FR-SELFIE-001 | Guest captures a selfie via **live camera** (browser getUserMedia API). No file upload option. Camera opens directly after consent acceptance. Professional circular scanner UI (not fullscreen). | MVP |
+| FR-SELFIE-002 | System shall provide **real-time face analysis** on camera screen: face position, lighting level, distance from camera. Live suggestions displayed (e.g., "Move closer", "Find better lighting", "Center your face"). Frame turns green when conditions are optimal. | MVP |
 | FR-SELFIE-003 | System shall detect exactly one clearly usable face in the reference image; multiple/zero faces shall trigger a retry prompt with guidance. | MVP |
 | FR-SELFIE-004 | Reference selfie shall be processed to a face embedding and shall not be publicly viewable by other guests. | MVP |
 | FR-SELFIE-005 | Guest shall receive clear feedback states: uploading, validating, accepted, rejected-with-reason, processing. | MVP |
