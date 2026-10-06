@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { Card, Badge, Spinner, Button } from '../../components/common';
 import { Download, X, ChevronLeft, ChevronRight, Camera, CalendarDays, ImageIcon } from '../../components/Icons';
@@ -13,6 +13,7 @@ import './guest.css';
 
 export default function GuestLandingPage() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [qrType, setQrType] = useState(null);
   const [photos, setPhotos] = useState([]);
@@ -30,6 +31,11 @@ export default function GuestLandingPage() {
       .then(({ data }) => {
         setEvent(data.event);
         setQrType(data.qrType);
+        // QR-B: Auto-redirect to consent+camera flow
+        if (data.qrType === 'B') {
+          navigate('/guest/consent/' + token, { replace: true });
+          return;
+        }
         if (data.qrType === 'A') {
           loadPhotos();
         }
