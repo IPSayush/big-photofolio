@@ -3,9 +3,9 @@
  * Returns the active face provider based on FACE_PROVIDER env var.
  *
  * Supported providers:
- * - 'mock' (default for dev/test) — deterministic, no external APIs
- * - 'rekognition' — AWS Rekognition (future)
- * - 'insightface' — local InsightFace model (future)
+ * - 'mock'        — deterministic, no external APIs (dev/test default)
+ * - 'face-api'    — @vladmandic/face-api, free, MIT license (production-ready)
+ * - 'rekognition' — AWS Rekognition, paid managed service (skeleton, future)
  */
 
 const { MockFaceProvider } = require('./mockFaceProvider');
@@ -14,6 +14,9 @@ let _instance = null;
 
 /**
  * Get the configured face provider singleton.
+ * Providers are lazily required to avoid import-time crashes
+ * (e.g., tfjs-node native module not found in test environments).
+ *
  * @returns {import('./faceProvider.interface').FaceProviderInterface}
  */
 function getFaceProvider() {
@@ -26,18 +29,24 @@ function getFaceProvider() {
       _instance = new MockFaceProvider();
       break;
 
-    // Future providers:
-    // case 'rekognition':
-    //   _instance = new RekognitionFaceProvider();
-    //   break;
-    // case 'insightface':
-    //   _instance = new InsightFaceFaceProvider();
-    //   break;
+    case 'face-api': {
+      // Lazy require — @vladmandic/face-api + @tensorflow/tfjs-node are heavy
+      const { FaceApiFaceProvider } = require('./faceApiFaceProvider');
+      _instance = new FaceApiFaceProvider();
+      break;
+    }
+
+    case 'rekognition': {
+      // Lazy require — skeleton, will throw "not implemented"
+      const { RekognitionFaceProvider } = require('./rekognitionFaceProvider');
+      _instance = new RekognitionFaceProvider();
+      break;
+    }
 
     default:
       throw new Error(
         `Unknown FACE_PROVIDER: "${providerName}". ` +
-        `Supported: mock, rekognition, insightface`
+        `Supported: mock, face-api, rekognition`
       );
   }
 

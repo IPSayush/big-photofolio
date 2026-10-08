@@ -18,15 +18,22 @@ const { GUEST_STATUS } = require('@photofolio/shared');
  */
 async function guestAuth(req, res, next) {
   try {
+    let token = null;
     const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Guest ')) {
-      throw new AppError('Guest authentication required.', 401, 'GUEST_AUTH_REQUIRED');
+    if (authHeader && authHeader.startsWith('Guest ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.params.guestToken) {
+      token = req.params.guestToken;
+    } else if (req.params.galleryToken) {
+      token = req.params.galleryToken;
+    } else if (req.params.token) {
+      token = req.params.token;
+    } else if (req.query.token) {
+      token = req.query.token;
     }
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new AppError('Invalid guest token format.', 401, 'INVALID_GUEST_TOKEN');
+      throw new AppError('Guest authentication required.', 401, 'GUEST_AUTH_REQUIRED');
     }
 
     // Hash token and look up
