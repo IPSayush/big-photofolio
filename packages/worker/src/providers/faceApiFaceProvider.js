@@ -35,7 +35,7 @@ let _usingNativeTf = false;
 function initTf() {
   if (faceapi) return;
 
-  // Try native TensorFlow.js first (5-10x faster inference)
+  // Try native TensorFlow.js first (5-10x faster inference on Linux/Railway)
   try {
     tf = require('@tensorflow/tfjs-node');
     _usingNativeTf = true;
@@ -43,18 +43,31 @@ function initTf() {
   } catch {
     logger.warn('face-api provider: @tensorflow/tfjs-node not available, using pure-JS backend (slower)');
     _usingNativeTf = false;
+    // Seamless fallback: alias @tensorflow/tfjs-node to @tensorflow/tfjs
+    const Module = require('module');
+    const origLoad = Module._load;
+    Module._load = function (request, parent, isMain) {
+      if (request === '@tensorflow/tfjs-node') {
+        try {
+          return require('@tensorflow/tfjs');
+        } catch {
+          // If not directly found, proceed
+        }
+      }
+      return origLoad.apply(this, arguments);
+    };
   }
 
   faceapi = require('@vladmandic/face-api');
 
   // If we don't have native tf, use face-api's bundled tfjs
   if (!_usingNativeTf) {
-    tf = faceapi.tf;
+    tf = faceapi.tf || require('@tensorflow/tfjs');
     // Also load sharp for image decoding (already a worker dependency)
     try {
       sharp = require('sharp');
     } catch {
-      throw new Error('face-api provider requires either @tensorflow/tfjs-node or sharp for image decoding');
+      throw new Error('face-api provider requires sharp for image decoding');
     }
   }
 }

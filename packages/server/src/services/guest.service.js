@@ -19,6 +19,7 @@ const FaceDetection = require('../models/FaceDetection');
 const { AppError } = require('../middleware/errorHandler');
 const { generatePresignedGetUrl } = require('../utils/s3');
 const { cosineSimilarity, findMatchesForGuest } = require('./matching.service');
+const { getFaceProvider } = require('../providers/providerFactory');
 const { GUEST_STATUS, PHOTO_STATUS } = require('@photofolio/shared');
 const logger = require('../utils/logger');
 const env = require('../config/env');
@@ -205,21 +206,66 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     );
   }
 
-  // FR-SELFIE-003: For MVP without real face provider in server,
-  // we accept the selfie and create a mock embedding.
-  // In production, the face provider would detect and validate face count.
-  const embeddingDimensions = 128;
-  const hash = crypto.createHash('sha256').update(imageBuffer).digest();
-  const vector = new Array(embeddingDimensions);
-  for (let i = 0; i < embeddingDimensions; i++) {
-    vector[i] = (hash[i % hash.length] / 127.5) - 1;
-  }
-  const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
-  for (let i = 0; i < embeddingDimensions; i++) {
-    vector[i] = vector[i] / magnitude;
+  // FR-SELFIE-003 & FR-SELFIE-004: Face provider detection & embedding
+  const faceProvider = getFaceProvider();
+  let vector;
+  let embeddingDimensions = 128;
+  let qualityScore = 0.9;
+
+  if (faceProvider.getProviderName() === 'mock') {
+    const hash = crypto.createHash('sha256').update(imageBuffer).digest();
+    vector = new Array(embeddingDimensions);
+    for (let i = 0; i < embeddingDimensions; i++) {
+      vector[i] = (hash[i % hash.length] / 127.5) - 1;
+    }
+    const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
+    for (let i = 0; i < embeddingDimensions; i++) {
+      vector[i] = vector[i] / magnitude;
+    }
+  } else {
+    // Real face detection & validation (FR-SELFIE-003)
+    let detectedFaces = [];
+    try {
+      detectedFaces = await faceProvider.detectFaces(imageBuffer);
+    } catch (detectErr) {
+      logger.warn({ err: detectErr.message }, 'Face detection encountered an issue');
+      guest.selfieStatus = 'rejected';
+      guest.selfieRejectionReason = 'Could not process face in image. Please try again with clear lighting.';
+      await guest.save();
+      throw new AppError('Could not process face in image. Please try again with clear lighting.', 400, 'FACE_DETECTION_FAILED');
+    }
+
+    if (detectedFaces.length === 0) {
+      guest.selfieStatus = 'rejected';
+      guest.selfieRejectionReason = 'No face detected in selfie. Please ensure your face is well-lit and clearly visible.';
+      await guest.save();
+      throw new AppError(
+        'No face detected in selfie. Please ensure your face is well-lit and clearly visible.',
+        400,
+        'NO_FACE_DETECTED'
+      );
+    }
+
+    if (detectedFaces.length > 1) {
+      guest.selfieStatus = 'rejected';
+      guest.selfieRejectionReason = `Multiple faces detected (${detectedFaces.length}). Please take a selfie with only yourself.`;
+      await guest.save();
+      throw new AppError(
+        `Multiple faces detected (${detectedFaces.length}). Please take a selfie with only yourself.`,
+        400,
+        'MULTIPLE_FACES_DETECTED'
+      );
+    }
+
+    qualityScore = detectedFaces[0].qualityScore || 0.9;
+
+    // Generate real embedding (FR-SELFIE-004)
+    const embedding = await faceProvider.generateEmbedding(imageBuffer);
+    vector = embedding.vector;
+    embeddingDimensions = embedding.dimensions;
   }
 
-  // Create/update reference face â€” FR-SELFIE-004
+  // Create/update reference face — FR-SELFIE-004
   // Idempotent: upsert by guestId + eventId
   const referenceFace = await ReferenceFace.findOneAndUpdate(
     { guestId: guest._id, eventId: guest.eventId, deletedAt: null },
@@ -229,8 +275,8 @@ async function processSelfie(guestId, imageBuffer, contentType) {
       tenantId: guest.tenantId,
       embedding: vector,
       embeddingDimensions,
-      qualityScore: 0.9,
-      provider: 'mock',
+      qualityScore,
+      provider: faceProvider.getProviderName(),
     },
     { upsert: true, new: true }
   );
@@ -348,7 +394,7 @@ async function getPersonalizedGallery(guestId, eventId) {
   const photosWithUrls = await Promise.all(
     matches.map(async (match) => {
       const photo = await Photo.findById(match.photoId)
-        .select('-s3OriginalKey -hash')
+        .select('-hash')
         .lean();
 
       if (!photo) return null;
@@ -358,6 +404,15 @@ async function getPersonalizedGallery(guestId, eventId) {
 
       for (const d of derivatives) {
         derivativeUrls[d.type] = await generatePresignedGetUrl(derivativeBucket, d.s3Key);
+      }
+
+      // If no derivatives exist (e.g. processing queued), fallback to original S3 photo
+      if (Object.keys(derivativeUrls).length === 0 && photo.s3OriginalKey) {
+        const originalBucket = env.aws.s3BucketOriginals || env.aws.s3Bucket;
+        derivativeUrls.original = await generatePresignedGetUrl(originalBucket, photo.s3OriginalKey);
+        derivativeUrls.thumbnail = derivativeUrls.original;
+        derivativeUrls.web = derivativeUrls.original;
+        derivativeUrls.watermarked = derivativeUrls.original;
       }
 
       return {

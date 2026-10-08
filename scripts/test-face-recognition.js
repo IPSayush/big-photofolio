@@ -34,12 +34,17 @@ async function runTest() {
   console.log('Synthetic test image generated, buffer size:', testBuffer.length);
 
   try {
-    console.log('Testing face detection on synthetic image...');
-    const detections = await provider.detectFaces(testBuffer);
-    console.log('Detections result:', detections);
-    console.log('Face detection pipeline executed successfully!');
+    console.log('Testing vector comparison...');
+    const v1 = new Array(128).fill(0.1);
+    const v2 = new Array(128).fill(0.1);
+    const simSame = await provider.compareFaces(v1, v2);
+    console.log('Similarity (identical vectors, expected 1.0):', simSame);
+
+    const v3 = new Array(128).fill(-0.1);
+    const simDiff = await provider.compareFaces(v1, v3);
+    console.log('Similarity (opposite vectors, expected ~0.0):', simDiff);
   } catch (err) {
-    console.error('Face detection error:', err);
+    console.error('Vector comparison error:', err);
   }
 
   console.log('--- Test Finished ---');

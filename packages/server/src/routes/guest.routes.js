@@ -31,8 +31,9 @@ router.post('/consent', checkGuestQuota, guestController.recordConsent);
 // POST /api/guest/selfie â€” upload selfie (FR-SELFIE-001)
 router.post('/selfie', guestAuth, guestController.uploadSelfie);
 
-// GET /api/guest/gallery â€” personalized gallery (FR-GALLERY-001)
+// GET /api/guest/gallery — personalized gallery (FR-GALLERY-001)
 router.get('/gallery', guestAuth, guestController.getPersonalizedGallery);
+router.get('/gallery/:guestToken', guestAuth, guestController.getPersonalizedGallery);
 
 // POST /api/guest/consent/withdraw â€” withdraw consent (FR-GUEST-005)
 router.post('/consent/withdraw', guestAuth, guestController.withdrawConsent);

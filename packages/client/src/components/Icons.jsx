@@ -123,3 +123,31 @@ export function ChevronLeft(p) {
 export function ChevronRight(p) {
   return <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
 }
+
+export function RefreshCw(p) {
+  return (
+    <Icon {...p}>
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </Icon>
+  );
+}
+
+export function Sparkles(p) {
+  return (
+    <Icon {...p}>
+      <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+    </Icon>
+  );
+}
+
+export function ShieldAlert(p) {
+  return (
+    <Icon {...p}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </Icon>
+  );
+}

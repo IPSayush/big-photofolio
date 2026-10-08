@@ -23,22 +23,35 @@ let _usingNativeTf = false;
 function initTf() {
   if (faceapi) return;
 
-  // Try native TensorFlow.js first (faster on Railway/local)
+  // Try native TensorFlow.js first (faster on Railway/Linux)
   try {
     tf = require('@tensorflow/tfjs-node');
     _usingNativeTf = true;
   } catch {
     _usingNativeTf = false;
+    // Seamless fallback: alias @tensorflow/tfjs-node to @tensorflow/tfjs
+    const Module = require('module');
+    const origLoad = Module._load;
+    Module._load = function (request, parent, isMain) {
+      if (request === '@tensorflow/tfjs-node') {
+        try {
+          return require('@tensorflow/tfjs');
+        } catch {
+          // If not directly found, proceed
+        }
+      }
+      return origLoad.apply(this, arguments);
+    };
   }
 
   faceapi = require('@vladmandic/face-api');
 
   if (!_usingNativeTf) {
-    tf = faceapi.tf;
+    tf = faceapi.tf || require('@tensorflow/tfjs');
     try {
       sharp = require('sharp');
     } catch {
-      throw new Error('face-api provider requires either @tensorflow/tfjs-node or sharp');
+      throw new Error('face-api provider requires sharp for image decoding');
     }
   }
 }
