@@ -57,6 +57,7 @@ export default function ConsentPage() {
   const [cameraError, setCameraError] = useState('');
   const [faceStatus, setFaceStatus] = useState(FACE_STATUS.NO_FACE);
   const [brightness, setBrightness] = useState(0);
+  const [searchStatus, setSearchStatus] = useState("Analyzing facial features...");
 
   // Load event info
   useEffect(() => {
@@ -195,6 +196,23 @@ export default function ConsentPage() {
 
   useEffect(() => { return () => { stopCamera(); }; }, [stopCamera]);
 
+  useEffect(() => {
+    if (step === 'submitting') {
+      const statuses = [
+        "Analyzing facial features...",
+        "Generating 128-D embedding...",
+        "Scanning event database...",
+        "Matching faces..."
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+        i = (i + 1) % statuses.length;
+        setSearchStatus(statuses[i]);
+      }, 800);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
+
   const handleAcceptConsent = async () => {
     if (!consentAccepted) return;
     setLoading(true);
@@ -286,15 +304,21 @@ export default function ConsentPage() {
 
   if (step === 'done') {
     return (
-      <div className="guest-success">
-        <div style={{ marginBottom: "var(--space-4)" }}>
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
+      <div className="scanner-page">
+        <div className="ai-searching">
+          <div className="ai-searching__container">
+            <div className="ai-searching__image-wrapper ai-searching__image-wrapper--success">
+              <img src={capturedImage} alt="Matched" className="ai-searching__image" />
+              <div className="ai-searching__success-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <h2 className="ai-searching__title" style={{ color: "#10b981" }}>Match Successful!</h2>
+          <p className="ai-searching__status">Redirecting to your personalized gallery...</p>
         </div>
-        <h2>You're all set!</h2>
-        <p>Our AI is finding your photos. Redirecting to your gallery...</p>
-        <div className="guest-success__dots"><span></span><span></span><span></span></div>
       </div>
     );
   }
@@ -439,7 +463,7 @@ export default function ConsentPage() {
         </div>
       )}
 
-      {(step === 'captured' || step === 'submitting') && capturedImage && (
+      {step === 'captured' && capturedImage && (
         <div className="scanner-review">
           <h2 className="scanner-review__title">Review Your Selfie</h2>
           <p className="scanner-review__desc">Make sure your face is clearly visible</p>
@@ -448,9 +472,25 @@ export default function ConsentPage() {
           </div>
           {error && <div className="scanner-consent-error" style={{ marginBottom: "16px" }}>{error}</div>}
           <div className="scanner-review__actions">
-            <Button variant="secondary" size="lg" onClick={retakePhoto} disabled={step === 'submitting'}>Retake</Button>
-            <Button variant="primary" size="lg" onClick={handleSubmit} loading={loading} disabled={step === 'submitting'}>Find My Photos</Button>
+            <Button variant="secondary" size="lg" onClick={retakePhoto}>Retake</Button>
+            <Button variant="primary" size="lg" onClick={handleSubmit} loading={loading}>Find My Photos</Button>
           </div>
+        </div>
+      )}
+
+      {step === 'submitting' && capturedImage && (
+        <div className="ai-searching">
+          <div className="ai-searching__container">
+            <div className="ai-searching__image-wrapper">
+              <img src={capturedImage} alt="Scanning" className="ai-searching__image" />
+              <div className="ai-searching__radar"></div>
+              <div className="ai-searching__beam"></div>
+              <div className="ai-searching__pulse"></div>
+              <div className="ai-searching__grid"></div>
+            </div>
+          </div>
+          <h2 className="ai-searching__title">AI Facial Recognition</h2>
+          <p className="ai-searching__status">{searchStatus}</p>
         </div>
       )}
 

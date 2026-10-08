@@ -773,6 +773,154 @@
   min-width: 140px;
 }
 
+/* --- AI SEARCHING ANIMATIONS --- */
+.ai-searching {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.ai-searching__container {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  margin-bottom: 32px;
+}
+
+.ai-searching__image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1), 0 0 40px rgba(16, 185, 129, 0.2);
+  background: #111;
+  transform: translateZ(0); /* Hardware acceleration */
+}
+
+.ai-searching__image-wrapper--success {
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.8), 0 0 60px rgba(16, 185, 129, 0.4);
+  animation: successPulse 2s infinite;
+}
+
+@keyframes successPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.ai-searching__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+  filter: contrast(1.1) brightness(1.1) grayscale(30%);
+  transition: all 0.5s;
+}
+
+.ai-searching__image-wrapper--success .ai-searching__image {
+  opacity: 1;
+  filter: none;
+}
+
+.ai-searching__radar {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.ai-searching__beam {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(16, 185, 129, 0.1) 80%, rgba(16, 185, 129, 0.6) 100%);
+  transform-origin: 0 0;
+  animation: radarBeam 1.5s linear infinite;
+  border-radius: 0 100% 0 0;
+}
+
+@keyframes radarBeam {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ai-searching__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(16, 185, 129, 0.6);
+  animation: radarPulse 2s cubic-bezier(0.1, 0.5, 0.9, 1) infinite;
+}
+
+@keyframes radarPulse {
+  0% { transform: scale(0.8); opacity: 1; border-width: 4px; }
+  100% { transform: scale(1.6); opacity: 0; border-width: 1px; }
+}
+
+.ai-searching__grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(16, 185, 129, 0.25) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(16, 185, 129, 0.25) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center center;
+  border-radius: 50%;
+  animation: gridMove 3s linear infinite;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 70%);
+}
+
+@keyframes gridMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 20px 20px; }
+}
+
+.ai-searching__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: pulseText 2s ease-in-out infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+}
+
+.ai-searching__status {
+  font-size: 0.95rem;
+  color: var(--color-text-muted, #94a3b8);
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.ai-searching__success-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.3);
+  animation: iconPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes iconPop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* --- MOBILE RESPONSIVE --- */
 @media (max-width: 480px) {
   .scanner-camera__container {
@@ -788,5 +936,14 @@
   .scanner-review__image-wrapper {
     width: 180px;
     height: 180px;
+  }
+
+  .ai-searching__container {
+    width: 200px;
+    height: 200px;
+  }
+
+  .ai-searching__title {
+    font-size: 1.3rem;
   }
 }
