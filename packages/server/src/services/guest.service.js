@@ -23,6 +23,7 @@ const { getFaceProvider } = require('../providers/providerFactory');
 const { GUEST_STATUS, PHOTO_STATUS } = require('@photofolio/shared');
 const logger = require('../utils/logger');
 const env = require('../config/env');
+const { getSelfieProcessingQueue } = require('../config/queue');
 
 // Current consent text version â€” PRIV-002: versioned, re-shown if changed
 const CONSENT_TEXT_VERSION = '1.0';
