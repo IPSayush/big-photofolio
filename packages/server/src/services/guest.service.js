@@ -152,7 +152,7 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     throw new AppError('Guest not found.', 404, 'GUEST_NOT_FOUND');
   }
 
-  // Check consent exists â€” PRIV-001
+  // Check consent exists � PRIV-001
   if (!guest.consentRecordId) {
     throw new AppError(
       'Consent is required before selfie upload.',
@@ -161,11 +161,11 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     );
   }
 
-  // Update status â€” FR-SELFIE-005
+  // Update status � FR-SELFIE-005
   guest.selfieStatus = 'validating';
   await guest.save();
 
-  // FR-SELFIE-002: Basic image quality validation
+  // FR-SELFIE-002: Basic image quality validation (lightweight � runs on Vercel)
   let sharp;
   try {
     sharp = require('sharp');
@@ -177,12 +177,10 @@ async function processSelfie(guestId, imageBuffer, contentType) {
   if (sharp && imageBuffer.length > 100) {
     try {
       metadata = await sharp(imageBuffer).metadata();
-      // If sharp can't determine dimensions, use safe defaults
       if (!metadata.width || !metadata.height) {
         metadata = { width: 640, height: 480 };
       }
     } catch {
-      // In test mode with mock images, sharp may fail â€” use defaults
       if (process.env.NODE_ENV !== 'test') {
         guest.selfieStatus = 'rejected';
         guest.selfieRejectionReason = 'Invalid image format.';
@@ -206,109 +204,100 @@ async function processSelfie(guestId, imageBuffer, contentType) {
     );
   }
 
-  // FR-SELFIE-003 & FR-SELFIE-004: Face provider detection & embedding
-  const faceProvider = getFaceProvider();
-  let vector;
-  let embeddingDimensions = 128;
-  let qualityScore = 0.9;
+  // ============================================================
+  // ARCHITECTURE: Offload heavy AI work to Railway Worker
+  // ============================================================
+  // Instead of running face-api.js models here (which crashes Vercel's
+  // 512MB serverless limit), we:
+  //   1. Upload the selfie image to S3 (temporary location)
+  //   2. Enqueue a 'selfie-processing' job via BullMQ
+  //   3. Return status='processing' immediately
+  //   4. Railway Worker picks up the job, runs AI, updates DB
+  // ============================================================
 
-  if (faceProvider.getProviderName() === 'mock') {
-    const hash = crypto.createHash('sha256').update(imageBuffer).digest();
-    vector = new Array(embeddingDimensions);
-    for (let i = 0; i < embeddingDimensions; i++) {
-      vector[i] = (hash[i % hash.length] / 127.5) - 1;
-    }
-    const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
-    for (let i = 0; i < embeddingDimensions; i++) {
-      vector[i] = vector[i] / magnitude;
-    }
-  } else {
-    // Real face detection & validation (FR-SELFIE-003)
-    let detectedFaces = [];
-    try {
-      detectedFaces = await faceProvider.detectFaces(imageBuffer);
-    } catch (detectErr) {
-      logger.warn({ err: detectErr.message }, 'Face detection encountered an issue');
-      guest.selfieStatus = 'rejected';
-      guest.selfieRejectionReason = 'Could not process face in image. Please try again with clear lighting.';
-      await guest.save();
-      throw new AppError('Could not process face in image. Please try again with clear lighting.', 400, 'FACE_DETECTION_FAILED');
-    }
+  // Step 1: Upload selfie to S3 temporary location
+  const selfieS3Key = `selfies/${guest.tenantId}/${guest.eventId}/${guest._id}_${Date.now()}.jpg`;
+  const selfieBucket = env.aws.s3BucketOriginals;
 
-    if (detectedFaces.length === 0) {
-      guest.selfieStatus = 'rejected';
-      guest.selfieRejectionReason = 'No face detected in selfie. Please ensure your face is well-lit and clearly visible.';
-      await guest.save();
-      throw new AppError(
-        'No face detected in selfie. Please ensure your face is well-lit and clearly visible.',
-        400,
-        'NO_FACE_DETECTED'
-      );
-    }
-
-    if (detectedFaces.length > 1) {
-      guest.selfieStatus = 'rejected';
-      guest.selfieRejectionReason = `Multiple faces detected (${detectedFaces.length}). Please take a selfie with only yourself.`;
-      await guest.save();
-      throw new AppError(
-        `Multiple faces detected (${detectedFaces.length}). Please take a selfie with only yourself.`,
-        400,
-        'MULTIPLE_FACES_DETECTED'
-      );
-    }
-
-    qualityScore = detectedFaces[0].qualityScore || 0.9;
-
-    // Generate real embedding (FR-SELFIE-004)
-    const embedding = await faceProvider.generateEmbedding(imageBuffer);
-    vector = embedding.vector;
-    embeddingDimensions = embedding.dimensions;
+  try {
+    await uploadBufferToS3(selfieBucket, selfieS3Key, imageBuffer, contentType || 'image/jpeg');
+  } catch (uploadErr) {
+    logger.error({ err: uploadErr.message, guestId: guestId.toString() }, 'Failed to upload selfie to S3');
+    guest.selfieStatus = 'rejected';
+    guest.selfieRejectionReason = 'Failed to save selfie. Please try again.';
+    await guest.save();
+    throw new AppError('Failed to save selfie. Please try again.', 500, 'SELFIE_UPLOAD_FAILED');
   }
 
-  // Create/update reference face — FR-SELFIE-004
-  // Idempotent: upsert by guestId + eventId
-  const referenceFace = await ReferenceFace.findOneAndUpdate(
-    { guestId: guest._id, eventId: guest.eventId, deletedAt: null },
-    {
-      guestId: guest._id,
-      eventId: guest.eventId,
-      tenantId: guest.tenantId,
-      embedding: vector,
-      embeddingDimensions,
-      qualityScore,
-      provider: faceProvider.getProviderName(),
-    },
-    { upsert: true, new: true }
-  );
-
-  // Mark selfie as accepted
-  guest.selfieStatus = 'accepted';
+  // Step 2: Mark as processing (worker will update to accepted/rejected)
+  guest.selfieStatus = 'processing';
   guest.selfieRejectionReason = null;
   await guest.save();
 
-  // Trigger matching against existing face detections in the event
-  const matchThreshold = parseFloat(process.env.FACE_MATCH_THRESHOLD) || 0.6;
-  const matches = await findMatchesForGuest(
-    guest.eventId, guest.tenantId, guest._id, vector, matchThreshold
-  );
+  // Step 3: Enqueue job for Railway Worker
+  const queue = getSelfieProcessingQueue();
+  const job = await queue.add('process-selfie', {
+    guestId: guest._id.toString(),
+    eventId: guest.eventId.toString(),
+    tenantId: guest.tenantId.toString(),
+    selfieS3Key,
+    selfieBucket,
+    contentType: contentType || 'image/jpeg',
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  });
 
   logger.info(
     {
       guestId: guest._id.toString(),
       eventId: guest.eventId.toString(),
-      referenceFaceId: referenceFace._id.toString(),
-      matchesFound: matches.length,
+      jobId: job.id,
+      selfieS3Key,
     },
-    'Selfie processed and matching completed'
+    'Selfie processing job enqueued to Railway Worker'
   );
 
+  // Step 4: Return immediately � client will poll for status
   return {
-    status: 'accepted',
-    referenceFaceId: referenceFace._id,
-    matchesFound: matches.length,
+    status: 'processing',
+    message: 'Your selfie is being processed. This usually takes a few seconds.',
+    jobId: job.id,
   };
 }
 
+/**
+ * Check the current selfie processing status for a guest.
+ * Called by the client to poll for completion after selfie upload.
+ *
+ * @param {string} guestId - Guest ID.
+ * @returns {Promise<{ selfieStatus, rejectionReason, matchesFound }>}
+ */
+async function getSelfieStatus(guestId) {
+  const guest = await Guest.findById(guestId).lean();
+  if (!guest) {
+    throw new AppError('Guest not found.', 404, 'GUEST_NOT_FOUND');
+  }
+
+  const result = {
+    selfieStatus: guest.selfieStatus,
+    rejectionReason: guest.selfieRejectionReason || null,
+  };
+
+  // If accepted, also return match count
+  if (guest.selfieStatus === 'accepted') {
+    const Match = require('../models/Match');
+    const matchCount = await Match.countDocuments({
+      guestId: guest._id,
+      eventId: guest.eventId,
+    });
+    result.matchesFound = matchCount;
+  }
+
+  return result;
+}
 /**
  * Get browsable gallery for QR-A access.
  * FR-GUEST-001: No consent required for non-personalized browsing.

@@ -197,7 +197,7 @@ export default function ConsentPage() {
   useEffect(() => { return () => { stopCamera(); }; }, [stopCamera]);
 
   useEffect(() => {
-    if (step === 'submitting') {
+    if (step === 'submitting' || step === 'processing') {
       const statuses = [
         "Analyzing facial features...",
         "Generating 128-D embedding...",
@@ -478,7 +478,7 @@ export default function ConsentPage() {
         </div>
       )}
 
-      {step === 'submitting' && capturedImage && (
+      {(step === 'submitting' || step === 'processing') && capturedImage && (
         <div className="ai-searching">
           <div className="ai-searching__container">
             <div className="ai-searching__image-wrapper">

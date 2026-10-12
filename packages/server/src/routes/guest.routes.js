@@ -31,6 +31,9 @@ router.post('/consent', checkGuestQuota, guestController.recordConsent);
 // POST /api/guest/selfie â€” upload selfie (FR-SELFIE-001)
 router.post('/selfie', guestAuth, guestController.uploadSelfie);
 
+// GET /api/guest/selfie/status � poll selfie processing status (Railway Worker async flow)
+router.get('/selfie/status', guestAuth, guestController.getSelfieStatus);
+
 // GET /api/guest/gallery — personalized gallery (FR-GALLERY-001)
 router.get('/gallery', guestAuth, guestController.getPersonalizedGallery);
 router.get('/gallery/:guestToken', guestAuth, guestController.getPersonalizedGallery);

@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * Worker Entry Point - BullMQ queue consumers.
  * FR-PIPE-001: All AI/image processing runs asynchronously via queue/worker.
  * NFR-SCALE-001: Workers scale horizontally independent of the web tier.
@@ -20,6 +20,7 @@ const { connectDB, disconnectDB } = require('./db');
 const { processImage } = require('./processors/imageProcessor');
 const { processFaces } = require('./processors/faceProcessor');
 const { processEventDelete } = require('./processors/eventDeleteProcessor');
+const { processSelfie } = require('./processors/selfieProcessor');
 
 // Determine if pino-pretty is available
 let pinoTransport = undefined;
@@ -39,6 +40,7 @@ const logger = pino({
 
 let worker = null;
 let faceWorker = null;
+let selfieWorker = null;
 let deleteWorker = null;
 
 /**
@@ -160,6 +162,40 @@ async function start() {
     logger.error({ err }, 'Face worker error');
   });
 
+  // === Selfie Processing Worker (Railway-only, heavy AI) ===
+  // This queue handles guest selfie uploads that were offloaded from Vercel.
+  // Vercel enqueues jobs here; Railway Worker runs face-api.js models.
+  selfieWorker = new Worker(
+    'selfie-processing',
+    async (job) => {
+      return processSelfie(job);
+    },
+    {
+      connection: redisConnection,
+      concurrency: 2, // Lower concurrency — each selfie loads AI models
+      lockDuration: 180000,  // 3 min lock — model loading can take time
+      stalledInterval: 90000,
+    }
+  );
+
+  selfieWorker.on('completed', (job, result) => {
+    logger.info(
+      { jobId: job.id, guestId: job.data.guestId, status: result?.status, matchesCreated: result?.matchesCreated, durationMs: result?.durationMs },
+      'Selfie processing job completed'
+    );
+  });
+
+  selfieWorker.on('failed', (job, err) => {
+    logger.error(
+      { jobId: job?.id, guestId: job?.data?.guestId, error: err.message, attempts: job?.attemptsMade },
+      'Selfie processing job failed'
+    );
+  });
+
+  selfieWorker.on('error', (err) => {
+    logger.error({ err }, 'Selfie worker error');
+  });
+
   deleteWorker = new Worker(
     'event-delete',
     async (job) => {
@@ -192,7 +228,7 @@ async function start() {
   });
 
   logger.info(
-    { concurrency: config.concurrency, queues: ['image-processing', 'face-processing', 'event-delete'] },
+    { concurrency: config.concurrency, queues: ['image-processing', 'face-processing', 'selfie-processing', 'event-delete'] },
     'Worker ready - listening for processing jobs'
   );
 }
@@ -201,6 +237,7 @@ async function shutdown(signal) {
   logger.info({ signal }, 'Worker shutting down...');
   if (worker) { await worker.close(); logger.info('Image processing worker closed'); }
   if (faceWorker) { await faceWorker.close(); logger.info('Face processing worker closed'); }
+  if (selfieWorker) { await selfieWorker.close(); logger.info('Selfie processing worker closed'); }
   if (deleteWorker) { await deleteWorker.close(); logger.info('Event delete worker closed'); }
   await disconnectDB();
   process.exit(0);

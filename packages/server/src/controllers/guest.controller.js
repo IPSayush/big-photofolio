@@ -79,6 +79,24 @@ async function recordConsent(req, res, next) {
 }
 
 /**
+ * GET /api/guest/selfie/status
+ * Poll selfie processing status — client calls this after upload.
+ * Returns current selfieStatus and match count if accepted.
+ */
+async function getSelfieStatus(req, res, next) {
+  try {
+    const result = await guestService.getSelfieStatus(req.guestId);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * POST /api/guest/selfie
  * Upload and validate selfie â€” FR-SELFIE-001 through 005.
  * Requires guest auth.
@@ -159,6 +177,7 @@ module.exports = {
   getBrowsableGallery,
   recordConsent,
   uploadSelfie,
+  getSelfieStatus,
   getPersonalizedGallery,
   withdrawConsent,
 };

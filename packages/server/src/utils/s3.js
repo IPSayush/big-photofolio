@@ -176,11 +176,38 @@ async function listObjectsByPrefix(bucket, prefix) {
   return keys;
 }
 
+/**
+ * Upload a Buffer directly to S3.
+ * Used for selfie uploads - server stores the image in S3, then enqueues
+ * the S3 key to the Railway worker for heavy AI processing.
+ *
+ * @param {string} bucket - S3 bucket name.
+ * @param {string} key - S3 object key.
+ * @param {Buffer} body - File contents.
+ * @param {string} contentType - MIME type.
+ * @returns {Promise<void>}
+ */
+async function uploadBufferToS3(bucket, key, body, contentType) {
+  if (env.nodeEnv === 'test') {
+    return; // No-op in test mode
+  }
+
+  const client = getS3Client();
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await client.send(command);
+}
+
 module.exports = {
   getS3Client,
   generatePresignedPutUrl,
   generatePresignedGetUrl,
   buildOriginalPhotoKey,
+  uploadBufferToS3,
   batchDeleteObjects,
   listObjectsByPrefix,
 };

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BullMQ Queue Configuration - producer side.
  * FR-PIPE-001: API server enqueues jobs; worker processes them.
  *
@@ -92,17 +92,20 @@ function getQueue(name) {
 const QUEUE_NAMES = Object.freeze({
   IMAGE_PROCESSING: 'image-processing',
   FACE_PROCESSING: 'face-processing',
+  SELFIE_PROCESSING: 'selfie-processing', // FR-SELFIE-004: Heavy AI runs on Railway worker
   EVENT_DELETE: 'event-delete',     // FR-EVENT-007: async cascade delete
 });
 
 function getImageProcessingQueue() { return getQueue(QUEUE_NAMES.IMAGE_PROCESSING); }
 function getFaceProcessingQueue() { return getQueue(QUEUE_NAMES.FACE_PROCESSING); }
+function getSelfieProcessingQueue() { return getQueue(QUEUE_NAMES.SELFIE_PROCESSING); }
 function getEventDeleteQueue() { return getQueue(QUEUE_NAMES.EVENT_DELETE); }
 
 module.exports = {
   getQueue,
   getImageProcessingQueue,
   getFaceProcessingQueue,
+  getSelfieProcessingQueue,
   getEventDeleteQueue,
   MockQueue,
   QUEUE_NAMES,
